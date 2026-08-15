@@ -7,9 +7,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ictfromabc · Student Portal</title>
-    <!-- Favicon / Website DP -->
-    <link rel="icon" href="loginmb.png" type="image/png" />
-    <link rel="apple-touch-icon" href="loginpc.png" />
+    <!-- Favicon -->
+    <link rel="icon" href="logo.png" type="image/png" />
+    <link rel="apple-touch-icon" href="logo.png" />
     <!-- Font preloads -->
     <link rel="preload" href="/_next/static/immutable/media/47fe1b7cd6e6ed85-s.p.1n2oi-d4a-xww.woff2" as="font" crossorigin="" type="font/woff2" />
     <link rel="preload" href="/_next/static/immutable/media/829ba4228c966254-s.p.0zvxjg5nywxta.woff2" as="font" crossorigin="" type="font/woff2" />
@@ -50,14 +50,12 @@
     <!-- ===== LOGIN SCREEN ===== -->
     <div id="authScreen" class="login-wrapper">
         <div class="login-container">
-            <!-- Left Side: Image -->
             <div class="login-image">
                 <img src="loginmb.png" alt="Student" />
                 <div class="logo-overlay">
                     <img src="logo.png" alt="ictfromabc" />
                 </div>
             </div>
-            <!-- Right Side: Form -->
             <div class="login-form">
                 <div class="logo-mobile">
                     <span>ict</span><span>fromabc</span>
@@ -115,8 +113,7 @@
                 <span class="notification-icon">🔔</span>
                 <span id="notificationText">Welcome to ictfromabc! Stay tuned for updates.</span>
                 <button class="notification-close" onclick="this.parentElement.parentElement.style.display='none'">✕</button>
-                <!-- Admin Edit Button (only visible to logged in admin) -->
-                <button id="editNotifBtn" style="background:rgba(255,255,255,0.15);border:none;color:white;padding:4px 10px;border-radius:40px;font-size:0.7rem;cursor:pointer;">✏️ Edit</button>
+                <button id="editNotifBtn" class="admin-btn">✏️ Admin</button>
             </div>
         </div>
 
@@ -231,7 +228,7 @@
                 </div>
             </div>
 
-            <!-- ===== OTHER SECTIONS (unchanged) ===== -->
+            <!-- ===== OTHER SECTIONS ===== -->
             <div id="section-lessons" class="section-content hidden"><div class="section-card"><div class="title">📚 My Lessons</div><div class="list-item">📖 Lesson 1: Introduction to ICT</div><div class="list-item">📖 Lesson 2: Data Representation</div><div class="list-item">📖 Lesson 3: Logic Gates</div><div class="list-item">📖 Lesson 4: Computer Networks</div><div class="list-item">📖 Lesson 5: Programming Basics</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">+ 12 more lessons available</div></div></div>
 
             <div id="section-practical" class="section-content hidden"><div class="section-card"><div class="title">🛠 Practical Sessions</div><div class="list-item">💻 Python Programming Lab</div><div class="list-item">🌐 Networking Configuration</div><div class="list-item">🗄️ Database Design & SQL</div><div class="list-item">⚡ Electronics & Circuit Design</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Next session: Saturday 9:00 AM</div></div></div>
@@ -310,14 +307,26 @@
 
     <div id="profileModal" class="modal-overlay"><div class="modal-card"><h2>✏️ Edit Full Profile</h2><label>Full Name</label><input type="text" id="editFullName" /><label>Address</label><input type="text" id="editAddress" /><label>Phone Number</label><input type="text" id="editPhone" /><label>WhatsApp Number</label><input type="text" id="editWhatsApp" /><label>A/L Subject</label><input type="text" id="editSubject" placeholder="e.g. ICT, Physics" /><label>School</label><input type="text" id="editSchool" /><label>Birthday</label><input type="date" id="editBirthday" /><label>NIC Number</label><input type="text" id="editNic" /><label>Institute</label><input type="text" id="editInstitute" /><label>Profile Photo URL</label><input type="text" id="editPhoto" placeholder="Profile.png" value="Profile.png" /><button class="home-btn" id="saveProfileBtn">Save Profile</button><p style="color:#888;font-size:0.8rem;margin-top:0.8rem;cursor:pointer;" onclick="closeModal('profileModal')">✕ close</p></div></div>
 
-    <!-- Edit Notification Modal -->
-    <div id="editNotifModal" class="modal-overlay">
-        <div class="modal-card">
-            <h2>✏️ Edit Notification</h2>
+    <!-- ===== ADMIN NOTIFICATION MODAL ===== -->
+    <div id="adminNotifModal" class="modal-overlay">
+        <div class="modal-card" style="max-width:550px;">
+            <h2>📢 Admin - Update Notification</h2>
+            <p style="color:#9ca3af;font-size:0.85rem;">Send a new notification to all students</p>
+            
             <label>Notification Message</label>
-            <input type="text" id="notifInput" placeholder="Enter new message..." style="width:100%;padding:0.8rem 1.2rem;border-radius:40px;border:1px solid #333;background:#1a1a1a;color:white;outline:none;" />
-            <button class="home-btn" id="saveNotifBtn" style="margin-top:0.5rem;">Save</button>
-            <p style="color:#888;font-size:0.8rem;margin-top:0.8rem;cursor:pointer;" onclick="closeModal('editNotifModal')">✕ close</p>
+            <input type="text" id="notifInput" placeholder="Enter your message..." style="width:100%;padding:0.8rem 1.2rem;border-radius:40px;border:1px solid #333;background:#1a1a1a;color:white;outline:none;margin-bottom:0.8rem;" />
+            
+            <label>Sender Name</label>
+            <input type="text" id="notifSender" placeholder="e.g. Admin, Teacher" style="width:100%;padding:0.8rem 1.2rem;border-radius:40px;border:1px solid #333;background:#1a1a1a;color:white;outline:none;margin-bottom:1rem;" />
+            
+            <button class="home-btn" id="saveNotifBtn" style="width:100%;">📨 Send Notification</button>
+            
+            <div style="margin-top:1rem;border-top:1px solid #1a1a1a;padding-top:1rem;">
+                <p style="color:#888;font-size:0.75rem;margin-bottom:0.3rem;">📋 Google Sheets Status: <span id="sheetsStatus" style="color:#4caf50;">● Connected</span></p>
+                <p style="color:#888;font-size:0.7rem;">Data is saved to both Firebase and Google Sheets</p>
+            </div>
+            
+            <p style="color:#888;font-size:0.8rem;margin-top:0.8rem;cursor:pointer;" onclick="closeModal('adminNotifModal')">✕ close</p>
         </div>
     </div>
 
