@@ -1,5 +1,5 @@
 <!-- ============================================================
-     FILE: index.html
+     FILE: index.html (Updated with advanced chatbot and mobile UI)
      ============================================================ -->
 <!DOCTYPE html>
 <html lang="en" class="poppins_e1585a45-module__UP0NmG__variable h-full antialiased">
@@ -7,7 +7,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
     <title>ictfromabc · Student Portal</title>
-    <!-- Font preloads -->
     <link rel="preload" href="/_next/static/immutable/media/47fe1b7cd6e6ed85-s.p.1n2oi-d4a-xww.woff2" as="font" crossorigin="" type="font/woff2" />
     <link rel="preload" href="/_next/static/immutable/media/829ba4228c966254-s.p.0zvxjg5nywxta.woff2" as="font" crossorigin="" type="font/woff2" />
     <link rel="preload" href="/_next/static/immutable/media/8e6fa89aa22d24ec-s.p.1bg6trwi21i5q.woff2" as="font" crossorigin="" type="font/woff2" />
@@ -17,7 +16,6 @@
     <link rel="preload" href="loginpc.png" as="image" />
     <link rel="preload" href="logo.png" as="image" />
     <link rel="preload" href="Profile.png" as="image" />
-    <!-- Firebase SDK -->
     <script type="importmap">
         {
             "imports": {
@@ -29,28 +27,19 @@
             }
         }
     </script>
-    <!-- External Stylesheet -->
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
     <!-- ===== NOTIFICATION BAR ===== -->
     <div id="notificationBar" class="notification-bar">
-        <div class="marquee" id="notifMarquee">
-            <span>📢 Loading notifications...</span>
-        </div>
-        <button class="close-notif" id="closeNotifBtn" title="Close notifications">✕</button>
+        <div class="marquee" id="notifMarquee"><span>📢 Loading notifications...</span></div>
+        <button class="close-notif" id="closeNotifBtn">✕</button>
     </div>
 
-    <!-- ===== LIVE ABC WALLPAPER ===== -->
+    <!-- ===== ABC WALLPAPER ===== -->
     <div class="abc-wallpaper">
-        <span>ICT</span>
-        <span>from</span>
-        <span>ABC</span>
-        <span>ICT</span>
-        <span>ABC</span>
-        <span>from</span>
-        <span>ICT</span>
+        <span>ICT</span><span>from</span><span>ABC</span><span>ICT</span><span>ABC</span><span>from</span><span>ICT</span>
     </div>
 
     <!-- ===== LOGIN SCREEN ===== -->
@@ -58,42 +47,23 @@
         <div class="login-container">
             <div class="login-image">
                 <img src="loginmb.png" alt="Student" />
-                <div class="logo-overlay">
-                    <img src="logo.png" alt="ictfromabc" />
-                </div>
+                <div class="logo-overlay"><img src="logo.png" alt="ictfromabc" /></div>
             </div>
             <div class="login-form">
                 <div class="logo-mobile"><span>ict</span><span>fromabc</span></div>
                 <div class="subtitle-sinhala">ලංකාවේ විශාලතම තොරතුරු තාක්ෂණික පන්තිය</div>
                 <div class="subtitle-english">ලංකාවේ වැඩිම A හා B සාමාර්ථ සහිත තොරතුරු තාක්ෂණ පන්තිය</div>
-                <div class="input-group">
-                    <label>Enter Your Phone Number</label>
-                    <input type="text" id="loginPhoneInput" placeholder="07X XXX XXXX" />
-                </div>
-                <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" id="loginPasswordInput" placeholder="Enter your password" />
-                </div>
+                <div class="input-group"><label>Enter Your Phone Number</label><input type="text" id="loginPhoneInput" placeholder="07X XXX XXXX" /></div>
+                <div class="input-group"><label>Password</label><input type="password" id="loginPasswordInput" placeholder="Enter your password" /></div>
                 <button id="loginBtn" class="login-btn">🔐 Login</button>
                 <div class="divider">or</div>
-                <button id="googleBtn" class="google-btn">
-                    <svg viewBox="0 0 18 18"><path fill="#fff" d="M17.64 9.2c0-.6-.1-1.2-.2-1.8h-8v3.4h4.9c-.2 1.2-.9 2.1-1.8 2.8v2.3h2.9c1.7-1.6 2.7-3.9 2.7-6.7z"/><path fill="#fff" d="M9.4 17.3c2.3 0 4.3-.8 5.7-2.1l-2.9-2.3c-.8.5-1.9.8-3 .8-2.2 0-4.1-1.5-4.8-3.6H1.5v2.4c1.4 2.8 4.3 4.8 7.9 4.8z"/><path fill="#fff" d="M4.6 10.1c-.2-.5-.3-1.1-.3-1.7s.1-1.2.3-1.7V4.3H1.5C.9 5.5.5 6.9.5 8.4s.4 2.9 1 4.1l3.1-2.4z"/><path fill="#fff" d="M9.4 3.6c1.2 0 2.3.4 3.2 1.2l2.4-2.4C13.7 1.1 11.7 0 9.4 0 5.8 0 2.9 2 1.5 4.3l3.1 2.4c.7-2.1 2.6-3.6 4.8-3.6z"/></svg>
-                    Sign in with Google
-                </button>
-                <div class="links">
-                    <a id="signupLink">Don't have an account? Create Account</a>
-                    <span class="sep">·</span>
-                    <a id="forgotLink">Forgot Password?</a>
-                </div>
-                <div class="help-section">
-                    <div class="help-label">Need Help?</div>
-                    <div class="phone">📞 Phone: 071 455 5513</div>
-                    <div class="social-icons">
+                <button id="googleBtn" class="google-btn"><svg viewBox="0 0 18 18"><path fill="#fff" d="M17.64 9.2c0-.6-.1-1.2-.2-1.8h-8v3.4h4.9c-.2 1.2-.9 2.1-1.8 2.8v2.3h2.9c1.7-1.6 2.7-3.9 2.7-6.7z"/><path fill="#fff" d="M9.4 17.3c2.3 0 4.3-.8 5.7-2.1l-2.9-2.3c-.8.5-1.9.8-3 .8-2.2 0-4.1-1.5-4.8-3.6H1.5v2.4c1.4 2.8 4.3 4.8 7.9 4.8z"/><path fill="#fff" d="M4.6 10.1c-.2-.5-.3-1.1-.3-1.7s.1-1.2.3-1.7V4.3H1.5C.9 5.5.5 6.9.5 8.4s.4 2.9 1 4.1l3.1-2.4z"/><path fill="#fff" d="M9.4 3.6c1.2 0 2.3.4 3.2 1.2l2.4-2.4C13.7 1.1 11.7 0 9.4 0 5.8 0 2.9 2 1.5 4.3l3.1 2.4c.7-2.1 2.6-3.6 4.8-3.6z"/></svg> Sign in with Google</button>
+                <div class="links"><a id="signupLink">Don't have an account? Create Account</a><span class="sep">·</span><a id="forgotLink">Forgot Password?</a></div>
+                <div class="help-section"><div class="help-label">Need Help?</div><div class="phone">📞 Phone: 071 455 5513</div><div class="social-icons">
                         <a href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg></a>
                         <a href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></a>
                         <a href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
-                    </div>
-                    <div class="copyright">©2025. All rights reserved.</div>
+                    </div><div class="copyright">©2025. All rights reserved.</div>
                 </div>
             </div>
         </div>
@@ -101,8 +71,7 @@
 
     <!-- ===== DASHBOARD ===== -->
     <div id="dashboardScreen" class="dashboard-container hidden">
-        <!-- Sidebar -->
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="logo"><span>ict</span><span>fromabc</span></div>
             <div class="section-label">MAIN</div>
             <div class="nav-item active" data-section="home"><span class="icon">🏠</span> Home</div>
@@ -130,9 +99,8 @@
             <div class="nav-item logout-btn" id="logoutBtn"><span class="icon">🚪</span> Logout</div>
         </div>
 
-        <!-- Main Content -->
         <div class="main-content" id="mainContent">
-            <!-- ===== HOME ===== -->
+            <!-- HOME -->
             <div id="section-home" class="section-content">
                 <div class="top-bar">
                     <h1>Welcome back, <span id="dashName">Student</span>! 🎉</h1>
@@ -148,42 +116,30 @@
                     <div class="stat-card"><div class="label">Papers Completed</div><div class="value">12</div><div class="change">/ 20 total</div></div>
                 </div>
                 <div class="two-col">
-                    <div class="subject-progress">
-                        <div class="title">📊 Study Topics Overview</div>
+                    <div class="subject-progress"><div class="title">📊 Study Topics Overview</div>
                         <div class="subject-item"><span class="name">Mathematics</span><div class="bar-track"><div class="bar-fill" style="width:78%"></div></div><span class="percent">78%</span></div>
                         <div class="subject-item"><span class="name">Physics</span><div class="bar-track"><div class="bar-fill" style="width:65%"></div></div><span class="percent">65%</span></div>
                         <div class="subject-item"><span class="name">Chemistry</span><div class="bar-track"><div class="bar-fill" style="width:55%"></div></div><span class="percent">55%</span></div>
                         <div class="subject-item"><span class="name">ICT</span><div class="bar-track"><div class="bar-fill" style="width:85%"></div></div><span class="percent">85%</span></div>
                         <div class="subject-item"><span class="name">Other</span><div class="bar-track"><div class="bar-fill" style="width:30%"></div></div><span class="percent">30%</span></div>
                     </div>
-                    <div class="upcoming-sessions">
-                        <div class="title">📅 Upcoming Sessions</div>
+                    <div class="upcoming-sessions"><div class="title">📅 Upcoming Sessions</div>
                         <div class="session-item"><div class="date-badge"><div class="day">31</div><div class="month">May</div></div><div class="info"><div class="title">Physics Practical</div><div class="desc">Electromagnetism</div><div class="time">⏰ 2:00 PM - 4:30 PM</div></div></div>
                         <div class="session-item"><div class="date-badge"><div class="day">31</div><div class="month">May</div></div><div class="info"><div class="title">Maths Tute</div><div class="desc">Calculus Applications</div><div class="time">⏰ 6:00 PM - 8:00 PM</div></div></div>
                         <div class="session-item"><div class="date-badge"><div class="day">31</div><div class="month">May</div></div><div class="info"><div class="title">ICT Practical</div><div class="desc">Database Management</div><div class="time">⏰ 3:00 PM - 5:00 PM</div></div></div>
                     </div>
                 </div>
-                <div class="continue-learning">
-                    <div class="title">📖 Continue Learning</div>
-                    <div class="dates">
-                        <span class="date-chip">May 1</span>
-                        <span class="date-chip">May 7</span>
-                        <span class="date-chip">May 14</span>
-                        <span class="date-chip">May 21</span>
-                        <span class="date-chip">May 28</span>
-                        <span class="date-chip active">May 31</span>
-                    </div>
-                </div>
+                <div class="continue-learning"><div class="title">📖 Continue Learning</div><div class="dates"><span class="date-chip">May 1</span><span class="date-chip">May 7</span><span class="date-chip">May 14</span><span class="date-chip">May 21</span><span class="date-chip">May 28</span><span class="date-chip active">May 31</span></div></div>
                 <div style="display:flex;justify-content:flex-end;"><button class="view-details-btn">📊 View Details</button></div>
             </div>
 
-            <!-- ===== LESSONS ===== -->
+            <!-- LESSONS -->
             <div id="section-lessons" class="section-content hidden"><div class="section-card"><div class="title">📚 My Lessons</div><div class="list-item">📖 Lesson 1: Introduction to ICT</div><div class="list-item">📖 Lesson 2: Data Representation</div><div class="list-item">📖 Lesson 3: Logic Gates</div><div class="list-item">📖 Lesson 4: Computer Networks</div><div class="list-item">📖 Lesson 5: Programming Basics</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">+ 12 more lessons available</div></div></div>
 
-            <!-- ===== PRACTICAL ===== -->
+            <!-- PRACTICAL -->
             <div id="section-practical" class="section-content hidden"><div class="section-card"><div class="title">🛠 Practical Sessions</div><div class="list-item">💻 Python Programming Lab</div><div class="list-item">🌐 Networking Configuration</div><div class="list-item">🗄️ Database Design & SQL</div><div class="list-item">⚡ Electronics & Circuit Design</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Next session: Saturday 9:00 AM</div></div></div>
 
-            <!-- ===== PROFILE ===== -->
+            <!-- PROFILE -->
             <div id="section-profile" class="section-content hidden">
                 <div class="section-card">
                     <div class="title">👤 Your Profile</div>
@@ -210,7 +166,7 @@
                 </div>
             </div>
 
-            <!-- ===== INSTITUTES ===== -->
+            <!-- INSTITUTES -->
             <div id="section-institutes" class="section-content hidden">
                 <div class="section-card" style="border-color:var(--primary);">
                     <div class="title">🏫 Educational Institutes</div>
@@ -225,7 +181,7 @@
                 </div>
             </div>
 
-            <!-- ===== CALENDAR ===== -->
+            <!-- CALENDAR -->
             <div id="section-calendar" class="section-content hidden">
                 <div class="section-card" style="border-color:var(--primary);">
                     <div class="title">📅 Work Hours & Tasks Calendar</div>
@@ -243,163 +199,63 @@
                             <button class="nav-btn" id="todayBtn" style="background:var(--primary);color:white;">Today</button>
                         </div>
                         <div class="calendar-grid" id="calendarGrid">
-                            <div class="day-name">Sun</div>
-                            <div class="day-name">Mon</div>
-                            <div class="day-name">Tue</div>
-                            <div class="day-name">Wed</div>
-                            <div class="day-name">Thu</div>
-                            <div class="day-name">Fri</div>
-                            <div class="day-name">Sat</div>
+                            <div class="day-name">Sun</div><div class="day-name">Mon</div><div class="day-name">Tue</div><div class="day-name">Wed</div><div class="day-name">Thu</div><div class="day-name">Fri</div><div class="day-name">Sat</div>
                         </div>
                     </div>
-                    <div class="event-list" id="eventList">
-                        <div class="no-events">📭 No events for this day. Click a date to add one.</div>
-                    </div>
+                    <div class="event-list" id="eventList"><div class="no-events">📭 No events for this day. Click a date to add one.</div></div>
                 </div>
             </div>
 
-            <!-- ===== A/L 2028 ===== -->
+            <!-- A/L 2028 -->
             <div id="section-al2028" class="section-content hidden"><div class="section-card"><div class="title">📘 A/L 2028</div><div class="list-item">📖 Module 1: Fundamentals of ICT</div><div class="list-item">📖 Module 2: Programming Concepts</div><div class="list-item">📖 Module 3: Network Technologies</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Classes: Mon & Wed 6:30 PM</div></div></div>
-
-            <!-- ===== A/L 2027 ===== -->
             <div id="section-al2027" class="section-content hidden"><div class="section-card"><div class="title">📗 A/L 2027</div><div class="list-item">📖 Module 1: System Analysis</div><div class="list-item">📖 Module 2: Advanced Programming</div><div class="list-item">📖 Module 3: Web Development</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Classes: Tue & Thu 6:30 PM</div></div></div>
-
-            <!-- ===== A/L 2026 ===== -->
             <div id="section-al2026" class="section-content hidden"><div class="section-card"><div class="title">📕 A/L 2026</div><div class="list-item">📖 Revision: Past Papers</div><div class="list-item">📖 Mock Exams</div><div class="list-item">📖 Practical Sessions</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Classes: Mon, Wed, Fri 6:30 PM</div></div></div>
-
-            <!-- ===== AL VIDEO ===== -->
             <div id="section-alvideo" class="section-content hidden"><div class="section-card"><div class="title">🎥 AL Video Modules</div><div class="list-item">🎬 Video 1: Number Systems</div><div class="list-item">🎬 Video 2: Boolean Algebra</div><div class="list-item">🎬 Video 3: Logic Gates</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📺 All videos available on YouTube</div></div></div>
-
-            <!-- ===== GIT ===== -->
             <div id="section-git" class="section-content hidden"><div class="section-card"><div class="title">🔗 GIT</div><div class="list-item">📂 GitHub Classroom Access</div><div class="list-item">📂 Repository Management</div><div class="list-item">📂 Version Control</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">🔗 Access: github.com/ictfromabc</div></div></div>
-
-            <!-- ===== O/L 2025 ===== -->
             <div id="section-ol2025" class="section-content hidden"><div class="section-card"><div class="title">📙 O/L 2025 (Grade 10)</div><div class="list-item">📖 Unit 1: Computer Basics</div><div class="list-item">📖 Unit 2: Software Applications</div><div class="list-item">📖 Unit 3: Internet & Email</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Classes: Saturday 9:00 AM</div></div></div>
-
-            <!-- ===== O/L 2024 ===== -->
             <div id="section-ol2024" class="section-content hidden"><div class="section-card"><div class="title">📒 O/L 2024 (Grade 11)</div><div class="list-item">📖 Unit 1: Networks</div><div class="list-item">📖 Unit 2: Programming</div><div class="list-item">📖 Unit 3: Databases</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Classes: Saturday 2:00 PM</div></div></div>
-
-            <!-- ===== OL VIDEO ===== -->
             <div id="section-olvideo" class="section-content hidden"><div class="section-card"><div class="title">🎬 OL Video Modules</div><div class="list-item">🎬 Video 1: Hardware Basics</div><div class="list-item">🎬 Video 2: Internet Safety</div><div class="list-item">🎬 Video 3: Programming Logic</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📺 All videos available on YouTube</div></div></div>
-
-            <!-- ===== TUTES ===== -->
             <div id="section-tutes" class="section-content hidden"><div class="section-card"><div class="title">📄 Tutes</div><div class="list-item">📝 Tute 1: Binary & Hex</div><div class="list-item">📝 Tute 2: HTML Basics</div><div class="list-item">📝 Tute 3: CSS Styling</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📥 Download all tutes from portal</div></div></div>
-
-            <!-- ===== PAYMENTS ===== -->
             <div id="section-payments" class="section-content hidden"><div class="section-card"><div class="title">💳 Payments</div><div class="list-item">💰 Annual Fee: LKR 15,000</div><div class="list-item">📅 Due Date: 2026-08-20</div><div class="list-item">✅ Status: Paid</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📞 Contact: 071 455 5513</div></div></div>
-
-            <!-- ===== TELEGRAM ===== -->
             <div id="section-telegram" class="section-content hidden"><div class="section-card"><div class="title">📱 Telegram Groups</div><div class="list-item">📢 A/L 2028 Group</div><div class="list-item">📢 A/L 2027 Group</div><div class="list-item">📢 A/L 2026 Group</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">🔗 Join via: t.me/ictfromabc</div></div></div>
-
-            <!-- ===== SOCIALS ===== -->
             <div id="section-socials" class="section-content hidden"><div class="section-card"><div class="title">🌐 Social Media</div><div class="list-item">📘 Facebook: @ictfromabc</div><div class="list-item">📺 YouTube: ICT from ABC</div><div class="list-item">📸 Instagram: @ictfromabc</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">🔗 Follow us for updates</div></div></div>
-
-            <!-- ===== BANK ===== -->
             <div id="section-bank" class="section-content hidden"><div class="section-card"><div class="title">🏦 Bank Account Details</div><div class="list-item"><strong>B.M.R.C. BANDARANAYAKE</strong></div><div class="list-item">🏦 1006 5704 9654 · SAMPATH BANK</div><div class="list-item">📍 KURUNEGALA SUPER BRANCH</div><div class="list-item" style="border-bottom:1px solid var(--border-color);"></div><div class="list-item"><strong>B.M.R.C. BANDARANAYAKE</strong></div><div class="list-item">🏦 8160 100 221 · COMMERCIAL BANK</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📍 KURUNEGALA MAIN BRANCH</div></div></div>
         </div>
     </div>
 
     <!-- ===== MODALS ===== -->
-    <!-- Signup Modal -->
-    <div id="signupModal" class="modal-overlay">
-        <div class="modal-card">
-            <h2>📝 Create Account</h2>
-            <label>Full Name</label><input type="text" id="signupName" />
-            <label>Phone Number</label><input type="text" id="signupPhone" />
-            <label>Password</label><input type="password" id="signupPass" />
-            <button class="home-btn" id="signupBtn">Sign Up</button>
-            <div class="close-modal-btn" onclick="closeModal('signupModal')">✕ close</div>
-        </div>
-    </div>
+    <div id="signupModal" class="modal-overlay"><div class="modal-card"><h2>📝 Create Account</h2><label>Full Name</label><input type="text" id="signupName" /><label>Phone Number</label><input type="text" id="signupPhone" /><label>Password</label><input type="password" id="signupPass" /><button class="home-btn" id="signupBtn">Sign Up</button><div class="close-modal-btn" onclick="closeModal('signupModal')">✕ close</div></div></div>
+    <div id="forgotModal" class="modal-overlay forgot-modal"><div class="modal-card"><h2>🔑 Reset Password</h2><p style="text-align:center;color:#888;font-size:0.85rem;margin-bottom:1rem;">Enter your phone number to receive an OTP</p><label>Phone Number</label><div style="display:flex;gap:0.5rem;"><input type="text" id="forgotPhone" placeholder="07X XXX XXXX" style="flex:1;" /><button id="sendOtpBtn" style="flex-shrink:0;padding:0.7rem 1.2rem;background:linear-gradient(135deg,var(--primary),var(--primary-light));border:none;color:white;border-radius:40px;font-weight:700;cursor:pointer;">Send OTP</button></div><div id="otpTimer" style="text-align:center;color:#ff6b3d;font-weight:600;font-size:0.85rem;margin:0.3rem 0;padding:0.3rem;background:rgba(219,57,0,0.1);border-radius:12px;border:1px dashed var(--primary);"></div><label>Enter OTP</label><div style="display:flex;gap:0.5rem;"><input type="text" id="otpInput" placeholder="6-digit OTP" maxlength="6" style="flex:1;" /><button id="verifyOtpBtn" style="flex-shrink:0;padding:0.7rem 1.2rem;background:linear-gradient(135deg,var(--primary),var(--primary-light));border:none;color:white;border-radius:40px;font-weight:700;cursor:pointer;">Verify</button></div><div id="otpStatus" style="text-align:center;font-weight:600;font-size:0.8rem;margin:0.2rem 0;"></div><label>New Password</label><input type="password" id="resetNewPass" placeholder="Enter new password (min 6 chars)" /><button class="reset-btn" id="resetPassBtn" style="background:linear-gradient(135deg,#0a8f3c,#0cb04a);border:none;color:white;font-weight:700;padding:0.8rem;border-radius:40px;width:100%;cursor:pointer;transition:0.3s;font-size:1rem;margin-top:0.3rem;">🔄 Reset Password</button><div class="close-modal-btn" onclick="closeModal('forgotModal')">✕ close</div></div></div>
+    <div id="changePassModal" class="modal-overlay"><div class="modal-card"><h2>🔐 Change Password</h2><label>New Password</label><input type="password" id="newPass" /><button class="home-btn" id="changePassBtn">Update</button><div class="close-modal-btn" onclick="closeModal('changePassModal')">✕ close</div></div></div>
+    <div id="profileModal" class="modal-overlay"><div class="modal-card"><h2>✏️ Edit Full Profile</h2><label>Full Name</label><input type="text" id="editFullName" /><label>Address</label><input type="text" id="editAddress" /><label>Phone Number</label><input type="text" id="editPhone" /><label>WhatsApp Number</label><input type="text" id="editWhatsApp" /><label>A/L Subject</label><input type="text" id="editSubject" placeholder="e.g. ICT, Physics" /><label>School</label><input type="text" id="editSchool" /><label>Birthday</label><input type="date" id="editBirthday" /><label>NIC Number</label><input type="text" id="editNic" /><label>Institute</label><input type="text" id="editInstitute" /><button class="home-btn" id="saveProfileBtn">Save Profile</button><div class="close-modal-btn" onclick="closeModal('profileModal')">✕ close</div></div></div>
+    <div id="eventModal" class="modal-overlay"><div class="modal-card"><h2 id="eventModalTitle">📝 Add Event</h2><label>Date</label><input type="date" id="eventDate" /><label>Title</label><input type="text" id="eventTitle" placeholder="e.g. Physics Practical" /><label>Type</label><select id="eventType"><option value="work">💼 Work Hours</option><option value="task">✅ Task</option><option value="class">📚 Class Date</option><option value="other">📌 Other</option></select><label>Description</label><textarea id="eventDesc" placeholder="Details about this event..."></textarea><label>Time</label><input type="time" id="eventTime" /><button class="home-btn" id="saveEventBtn">💾 Save Event</button><button class="home-btn home-btn-outline" id="deleteEventBtn" style="margin-top:0.3rem;display:none;">🗑️ Delete Event</button><div class="close-modal-btn" onclick="closeModal('eventModal')">✕ close</div></div></div>
 
-    <!-- Forgot Modal -->
-    <div id="forgotModal" class="modal-overlay forgot-modal">
-        <div class="modal-card">
-            <h2>🔑 Reset Password</h2>
-            <p style="text-align:center;color:#888;font-size:0.85rem;margin-bottom:1rem;">Enter your phone number to receive an OTP</p>
-            <label>Phone Number</label>
-            <div style="display:flex;gap:0.5rem;">
-                <input type="text" id="forgotPhone" placeholder="07X XXX XXXX" style="flex:1;" />
-                <button id="sendOtpBtn" style="flex-shrink:0;padding:0.7rem 1.2rem;background:linear-gradient(135deg,var(--primary),var(--primary-light));border:none;color:white;border-radius:40px;font-weight:700;cursor:pointer;">Send OTP</button>
-            </div>
-            <div id="otpTimer" style="text-align:center;color:#ff6b3d;font-weight:600;font-size:0.85rem;margin:0.3rem 0;padding:0.3rem;background:rgba(219,57,0,0.1);border-radius:12px;border:1px dashed var(--primary);"></div>
-            <label>Enter OTP</label>
-            <div style="display:flex;gap:0.5rem;">
-                <input type="text" id="otpInput" placeholder="6-digit OTP" maxlength="6" style="flex:1;" />
-                <button id="verifyOtpBtn" style="flex-shrink:0;padding:0.7rem 1.2rem;background:linear-gradient(135deg,var(--primary),var(--primary-light));border:none;color:white;border-radius:40px;font-weight:700;cursor:pointer;">Verify</button>
-            </div>
-            <div id="otpStatus" style="text-align:center;font-weight:600;font-size:0.8rem;margin:0.2rem 0;"></div>
-            <label>New Password</label>
-            <input type="password" id="resetNewPass" placeholder="Enter new password (min 6 chars)" />
-            <button class="reset-btn" id="resetPassBtn" style="background:linear-gradient(135deg,#0a8f3c,#0cb04a);border:none;color:white;font-weight:700;padding:0.8rem;border-radius:40px;width:100%;cursor:pointer;transition:0.3s;font-size:1rem;margin-top:0.3rem;">🔄 Reset Password</button>
-            <div class="close-modal-btn" onclick="closeModal('forgotModal')">✕ close</div>
-        </div>
-    </div>
-
-    <!-- Change Password Modal -->
-    <div id="changePassModal" class="modal-overlay">
-        <div class="modal-card">
-            <h2>🔐 Change Password</h2>
-            <label>New Password</label><input type="password" id="newPass" />
-            <button class="home-btn" id="changePassBtn">Update</button>
-            <div class="close-modal-btn" onclick="closeModal('changePassModal')">✕ close</div>
-        </div>
-    </div>
-
-    <!-- Profile Edit Modal -->
-    <div id="profileModal" class="modal-overlay">
-        <div class="modal-card">
-            <h2>✏️ Edit Full Profile</h2>
-            <label>Full Name</label><input type="text" id="editFullName" />
-            <label>Address</label><input type="text" id="editAddress" />
-            <label>Phone Number</label><input type="text" id="editPhone" />
-            <label>WhatsApp Number</label><input type="text" id="editWhatsApp" />
-            <label>A/L Subject</label><input type="text" id="editSubject" placeholder="e.g. ICT, Physics" />
-            <label>School</label><input type="text" id="editSchool" />
-            <label>Birthday</label><input type="date" id="editBirthday" />
-            <label>NIC Number</label><input type="text" id="editNic" />
-            <label>Institute</label><input type="text" id="editInstitute" />
-            <button class="home-btn" id="saveProfileBtn">Save Profile</button>
-            <div class="close-modal-btn" onclick="closeModal('profileModal')">✕ close</div>
-        </div>
-    </div>
-
-    <!-- Event Modal -->
-    <div id="eventModal" class="modal-overlay">
-        <div class="modal-card">
-            <h2 id="eventModalTitle">📝 Add Event</h2>
-            <label>Date</label>
-            <input type="date" id="eventDate" />
-            <label>Title</label>
-            <input type="text" id="eventTitle" placeholder="e.g. Physics Practical" />
-            <label>Type</label>
-            <select id="eventType">
-                <option value="work">💼 Work Hours</option>
-                <option value="task">✅ Task</option>
-                <option value="class">📚 Class Date</option>
-                <option value="other">📌 Other</option>
-            </select>
-            <label>Description</label>
-            <textarea id="eventDesc" placeholder="Details about this event..."></textarea>
-            <label>Time</label>
-            <input type="time" id="eventTime" />
-            <button class="home-btn" id="saveEventBtn">💾 Save Event</button>
-            <button class="home-btn home-btn-outline" id="deleteEventBtn" style="margin-top:0.3rem;display:none;">🗑️ Delete Event</button>
-            <div class="close-modal-btn" onclick="closeModal('eventModal')">✕ close</div>
-        </div>
-    </div>
-
-    <!-- ===== CHATBOT ===== -->
+    <!-- ===== ADVANCED CHATBOT ===== -->
     <button class="chatbot-toggle pulse-glow" id="chatToggle">💬 AI Assistant</button>
     <div class="chatbot-window" id="chatWindow">
-        <div class="chat-header"><span>🤖 ICT Assistant</span><button id="chatClose">✕</button></div>
-        <div class="chat-messages" id="chatMessages">
-            <div class="chat-msg bot"><div class="sender">🤖 Assistant</div>👋 Hi! Ask me about: <div style="margin-top:6px;"><span class="quick-reply" data-msg="Class schedule">📅 Schedule</span><span class="quick-reply" data-msg="Past papers">📄 Papers</span><span class="quick-reply" data-msg="Fees">💰 Fees</span><span class="quick-reply" data-msg="Contact info">📞 Contact</span></div><div class="time">Just now</div></div>
+        <div class="chat-header">
+            <span>🤖 ICT Assistant</span>
+            <button id="chatClose">✕</button>
         </div>
-        <div class="chat-input"><input id="chatInput" placeholder="Type your question..." /><button id="chatSend">Send</button></div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-msg bot">
+                <div class="sender">🤖 Assistant</div>
+                👋 Hi! I'm your ICT assistant. Ask me about:
+                <div style="margin-top:6px;">
+                    <span class="quick-reply" data-msg="Class schedule">📅 Schedule</span>
+                    <span class="quick-reply" data-msg="Past papers">📄 Papers</span>
+                    <span class="quick-reply" data-msg="Fees">💰 Fees</span>
+                    <span class="quick-reply" data-msg="Contact info">📞 Contact</span>
+                </div>
+                <div class="time">Just now</div>
+            </div>
+        </div>
+        <div class="chat-input">
+            <input id="chatInput" placeholder="Type your question..." />
+            <button id="chatSend">Send</button>
+        </div>
     </div>
 
-    <!-- External JavaScript -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
