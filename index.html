@@ -24,6 +24,7 @@
                 "firebase/app": "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js",
                 "firebase/auth": "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js",
                 "firebase/database": "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js",
+                "firebase/storage": "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js",
                 "firebase/analytics": "https://www.gstatic.com/firebasejs/12.17.1/firebase-analytics.js"
             }
         }
@@ -186,13 +187,16 @@
             <div id="section-profile" class="section-content hidden">
                 <div class="section-card">
                     <div class="title">👤 Your Profile</div>
-                    <div style="display:flex;align-items:center;gap:1.2rem;margin-bottom:0.8rem;">
-                        <div style="width:70px;height:70px;border-radius:50%;overflow:hidden;border:3px solid var(--primary);background:var(--bg-input);">
+                    <div style="display:flex;align-items:center;gap:1.2rem;margin-bottom:0.8rem;flex-wrap:wrap;">
+                        <div style="width:80px;height:80px;border-radius:50%;overflow:hidden;border:3px solid var(--primary);background:var(--bg-input);position:relative;flex-shrink:0;">
                             <img src="Profile.png" alt="Profile" style="width:100%;height:100%;object-fit:cover;" id="profileImgDisplay" />
+                            <label for="profilePhotoInput" class="photo-upload-label" title="Change profile photo">📷</label>
+                            <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;" />
                         </div>
                         <div>
                             <h3 style="margin:0;color:white;" id="profileNameDisplay">Student</h3>
                             <p style="margin:0;color:var(--text-gray);font-size:0.8rem;" id="profilePhoneDisplay">-</p>
+                            <div id="uploadStatus" style="font-size:0.7rem;color:var(--text-gray);margin-top:0.2rem;"></div>
                         </div>
                     </div>
                     <div class="profile-field"><span class="label">Full Name</span><span class="value" id="pFullName">-</span></div>
@@ -355,7 +359,6 @@
             <label>Birthday</label><input type="date" id="editBirthday" />
             <label>NIC Number</label><input type="text" id="editNic" />
             <label>Institute</label><input type="text" id="editInstitute" />
-            <label>Profile Photo URL</label><input type="text" id="editPhoto" placeholder="Profile.png" value="Profile.png" />
             <button class="home-btn" id="saveProfileBtn">Save Profile</button>
             <div class="close-modal-btn" onclick="closeModal('profileModal')">✕ close</div>
         </div>
