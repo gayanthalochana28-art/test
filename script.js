@@ -9,17 +9,20 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, se
 from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getDatabase, ref, set, update, get, child, push, onValue, query, orderByChild } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
 
-// ===== FIREBASE CONFIG (EDITABLE) =====
-// Replace these values with your own Firebase project settings.
+// ===== FIREBASE CONFIG =====
 const firebaseConfig = {
-    apiKey: "AIzaSyCcSHVnPeGa73lSh-vZNWJDod-C11lAciI",   // <- Your API Key
-    authDomain: "ict-from-abc.firebaseapp.com",            // <- Your Auth Domain
-    projectId: "ict-from-abc",                             // <- Your Project ID
-    storageBucket: "ict-from-abc.firebasestorage.app",     // <- Your Storage Bucket
-    messagingSenderId: "70545428741",                      // <- Your Sender ID
-    appId: "1:70545428741:web:2f77d3511d283116d6a76c",     // <- Your App ID
-    measurementId: "G-XYXH34MX7K"                          // <- Your Measurement ID (optional)
+    apiKey: "AIzaSyCcSHVnPeGa73lSh-vZNWJDod-C11lAciI",
+    authDomain: "ict-from-abc.firebaseapp.com",
+    projectId: "ict-from-abc",
+    storageBucket: "ict-from-abc.firebasestorage.app",
+    messagingSenderId: "70545428741",
+    appId: "1:70545428741:web:2f77d3511d283116d6a76c",
+    measurementId: "G-XYXH34MX7K"
 };
+
+// ===== GOOGLE SHEETS API URL =====
+// 🔥 REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
+const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbz-MW7cAd8ga0ztz5YCvK3hj20rEJoR4uWUBRTlGRs3PC2yxl9Szv9CS-M5scWC4A7I/exec';
 
 // ===== INIT FIREBASE =====
 const app = initializeApp(firebaseConfig);
@@ -61,7 +64,9 @@ const generateScheduleBtn = document.getElementById('generateScheduleBtn');
 const notificationText = document.getElementById('notificationText');
 const editNotifBtn = document.getElementById('editNotifBtn');
 const notifInput = document.getElementById('notifInput');
+const notifSender = document.getElementById('notifSender');
 const saveNotifBtn = document.getElementById('saveNotifBtn');
+const sheetsStatus = document.getElementById('sheetsStatus');
 
 let currentUserId = null;
 let events = [];
@@ -83,6 +88,58 @@ function clearUserLocally() {
     localStorage.removeItem('ict_user_data');
 }
 
+// ===== GOOGLE SHEETS API HELPERS =====
+async function sheetsFetch(action, data = {}) {
+    try {
+        const response = await fetch(SHEETS_API_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ action, ...data })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error('Google Sheets API error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function sheetsGet(action, params = {}) {
+    try {
+        const url = new URL(SHEETS_API_URL);
+        url.searchParams.append('action', action);
+        Object.keys(params).forEach(key => {
+            url.searchParams.append(key, params[key]);
+        });
+        
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error('Google Sheets API error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // ===== SHOW DASHBOARD =====
 function showDashboard(userData) {
     authScreen.classList.add('hidden');
@@ -101,51 +158,251 @@ function showDashboard(userData) {
         if (profileImgDisplay) profileImgDisplay.src = userData.photo;
     }
     currentUserId = userData?.uid || 'local';
-    // Load events from Firebase
-    loadEvents();
-    // Load notifications
-    loadNotifications();
+    
+    // Load events from Google Sheets & Firebase
+    loadEventsFromSheets();
+    // Load notifications from Google Sheets
+    loadNotificationsFromSheets();
+    // Also load from Firebase as backup
+    loadEventsFromFirebase();
+    loadNotificationsFromFirebase();
     // Update task count
     updateTaskCount();
 }
 
-// ===== NOTIFICATIONS =====
-function loadNotifications() {
+// ===== NOTIFICATIONS - Google Sheets =====
+async function loadNotificationsFromSheets() {
+    try {
+        const result = await sheetsGet('getNotifications');
+        if (result.success && result.notifications && result.notifications.length > 0) {
+            const latest = result.notifications[0];
+            if (latest && latest.text) {
+                notificationText.textContent = latest.text;
+                if (sheetsStatus) {
+                    sheetsStatus.textContent = '● Connected';
+                    sheetsStatus.style.color = '#4caf50';
+                }
+                return;
+            }
+        }
+        // Fallback to default if no data
+        notificationText.textContent = 'Welcome to ictfromabc! Stay tuned for updates.';
+    } catch (err) {
+        console.warn('Sheets notifications not available, using fallback:', err);
+        if (sheetsStatus) {
+            sheetsStatus.textContent = '⚠️ Using Firebase';
+            sheetsStatus.style.color = '#ffaa00';
+        }
+    }
+}
+
+async function saveNotificationToSheets(text, sender) {
+    try {
+        const result = await sheetsFetch('saveNotification', { text, sender });
+        if (result.success) {
+            // Reload notifications
+            await loadNotificationsFromSheets();
+            return true;
+        }
+        return false;
+    } catch (err) {
+        console.error('Error saving to Sheets:', err);
+        return false;
+    }
+}
+
+// ===== NOTIFICATIONS - Firebase (Backup) =====
+function loadNotificationsFromFirebase() {
     const notifRef = ref(database, 'notifications');
     onValue(notifRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-            // Get the latest message (assuming node has a timestamp or we just use the last one)
             const messages = Object.values(data);
             const latest = messages[messages.length - 1];
-            if (latest && latest.text) {
-                notificationText.textContent = latest.text;
+            if (latest && latest.text && notificationText) {
+                // Only update if Sheets didn't load first (or as backup)
+                const currentText = notificationText.textContent;
+                if (currentText === 'Welcome to ictfromabc! Stay tuned for updates.' || currentText === '') {
+                    notificationText.textContent = latest.text;
+                }
             }
-        } else {
-            // If no notification exists, set a default
-            notificationText.textContent = 'Welcome to ictfromabc! Stay tuned for updates.';
         }
     });
 }
 
-// ===== EVENTS =====
-function loadEvents() {
+async function saveNotificationToFirebase(text, sender) {
+    try {
+        const notifRef = ref(database, 'notifications');
+        await push(notifRef, { text, sender, timestamp: Date.now() });
+        return true;
+    } catch (err) {
+        console.error('Error saving to Firebase:', err);
+        return false;
+    }
+}
+
+// ===== EVENTS - Google Sheets =====
+async function loadEventsFromSheets() {
+    try {
+        const result = await sheetsGet('getEvents', { userId: currentUserId || '' });
+        if (result.success && result.events) {
+            events = result.events;
+            renderCalendar(currentMonth, currentYear);
+            renderEvents(events);
+            updateTaskCount();
+            return;
+        }
+    } catch (err) {
+        console.warn('Sheets events not available:', err);
+    }
+    // If Sheets fails, try Firebase
+    loadEventsFromFirebase();
+}
+
+async function saveEventToSheets(date, time, title, desc, userId) {
+    try {
+        const result = await sheetsFetch('saveEvent', { date, time, title, desc, userId });
+        if (result.success) {
+            await loadEventsFromSheets();
+            return true;
+        }
+        return false;
+    } catch (err) {
+        console.error('Error saving event to Sheets:', err);
+        return false;
+    }
+}
+
+async function deleteEventFromSheets(rowIndex) {
+    try {
+        const result = await sheetsFetch('deleteEvent', { rowIndex });
+        if (result.success) {
+            await loadEventsFromSheets();
+            return true;
+        }
+        return false;
+    } catch (err) {
+        console.error('Error deleting event from Sheets:', err);
+        return false;
+    }
+}
+
+// ===== EVENTS - Firebase (Backup) =====
+function loadEventsFromFirebase() {
     if (!currentUserId) return;
     const eventsRef = ref(database, `events/${currentUserId}`);
     onValue(eventsRef, (snapshot) => {
         const data = snapshot.val();
-        events = [];
-        if (data) {
+        // Only update if Sheets didn't load (or as backup)
+        if (data && events.length === 0) {
+            const firebaseEvents = [];
             Object.keys(data).forEach(key => {
-                events.push({ id: key, ...data[key] });
+                firebaseEvents.push({ id: key, ...data[key] });
             });
+            events = firebaseEvents;
+            renderCalendar(currentMonth, currentYear);
+            renderEvents(events);
+            updateTaskCount();
         }
-        renderCalendar(currentMonth, currentYear);
-        renderEvents(events);
-        updateTaskCount();
     });
 }
 
+async function saveEventToFirebase(date, time, title, desc, userId) {
+    try {
+        const eventsRef = ref(database, `events/${userId || currentUserId}`);
+        await push(eventsRef, { date, time, title, desc });
+        return true;
+    } catch (err) {
+        console.error('Error saving to Firebase:', err);
+        return false;
+    }
+}
+
+// ===== EVENT HANDLERS (Unified) =====
+async function addEvent(date, time, title, desc) {
+    if (!date || !title) {
+        alert('Please enter at least a date and title.');
+        return;
+    }
+    
+    const userId = currentUserId || 'local';
+    const newEvent = { date, time: time || '', title, desc: desc || '' };
+    
+    // Try Google Sheets first
+    let success = await saveEventToSheets(date, time, title, desc, userId);
+    
+    // If Sheets fails, try Firebase
+    if (!success) {
+        success = await saveEventToFirebase(date, time, title, desc, userId);
+    }
+    
+    if (success) {
+        // Clear form
+        eventDate.value = '';
+        eventTime.value = '';
+        eventTitle.value = '';
+        eventDesc.value = '';
+        // Reload events
+        await loadEventsFromSheets();
+    } else {
+        alert('Error saving event. Please try again.');
+    }
+}
+
+async function deleteEvent(id) {
+    if (!id) return;
+    if (!confirm('Delete this event?')) return;
+    
+    // Find the event in the list to get its rowIndex for Sheets
+    const event = events.find(e => e.id === id);
+    const rowIndex = event?.rowIndex;
+    
+    let success = false;
+    if (rowIndex) {
+        success = await deleteEventFromSheets(rowIndex);
+    }
+    
+    // If Sheets deletion fails or no rowIndex, try Firebase
+    if (!success && currentUserId) {
+        try {
+            await set(ref(database, `events/${currentUserId}/${id}`), null);
+            success = true;
+        } catch (err) {
+            console.error('Error deleting from Firebase:', err);
+        }
+    }
+    
+    if (success) {
+        await loadEventsFromSheets();
+    } else {
+        alert('Error deleting event.');
+    }
+}
+
+// ===== NOTIFICATION HANDLER (Unified) =====
+async function sendNotification(text, sender) {
+    if (!text) { alert('Please enter a message.'); return; }
+    
+    // Try Google Sheets first
+    let success = await saveNotificationToSheets(text, sender || 'admin');
+    
+    // If Sheets fails, try Firebase
+    if (!success) {
+        success = await saveNotificationToFirebase(text, sender || 'admin');
+    }
+    
+    if (success) {
+        // Reload notifications
+        await loadNotificationsFromSheets();
+        await loadNotificationsFromFirebase();
+        closeModal('adminNotifModal');
+        alert('Notification sent successfully!');
+    } else {
+        alert('Error sending notification. Please try again.');
+    }
+}
+
+// ===== RENDER CALENDAR =====
 function renderCalendar(month, year) {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -160,7 +417,6 @@ function renderCalendar(month, year) {
         html += `<div class="day-header">${d}</div>`;
     });
 
-    // Empty cells for first week
     for (let i = 0; i < firstDay; i++) {
         html += `<div class="day-cell"></div>`;
     }
@@ -182,6 +438,7 @@ window.selectDate = function(dateStr) {
     document.getElementById('eventDate').value = dateStr;
 };
 
+// ===== RENDER EVENTS =====
 function renderEvents(eventList) {
     const searchTerm = searchEvent.value.toLowerCase();
     const filtered = eventList.filter(e => {
@@ -189,7 +446,7 @@ function renderEvents(eventList) {
         const desc = e.desc?.toLowerCase() || '';
         return title.includes(searchTerm) || desc.includes(searchTerm);
     });
-    // Sort by date and time
+    
     filtered.sort((a, b) => {
         if (a.date < b.date) return -1;
         if (a.date > b.date) return 1;
@@ -203,6 +460,7 @@ function renderEvents(eventList) {
         html = '<p style="color:#9ca3af;font-size:0.9rem;">No events found.</p>';
     } else {
         filtered.forEach(e => {
+            const id = e.id || e._id || '';
             html += `
                 <div class="event-item">
                     <div class="event-info">
@@ -210,55 +468,23 @@ function renderEvents(eventList) {
                         <div class="desc">${e.desc || ''}</div>
                         <div class="datetime">${e.date} ${e.time || ''}</div>
                     </div>
-                    <button class="delete-event" data-id="${e.id}">✕</button>
+                    <button class="delete-event" data-id="${id}" data-row="${e.rowIndex || ''}">✕</button>
                 </div>
             `;
         });
     }
     eventsContainer.innerHTML = html;
 
-    // Attach delete listeners
     document.querySelectorAll('.delete-event').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
-            deleteEvent(id);
+            const row = this.dataset.row;
+            deleteEvent(id || row);
         });
     });
 }
 
-async function deleteEvent(id) {
-    if (!currentUserId) return;
-    if (!confirm('Delete this event?')) return;
-    try {
-        await set(ref(database, `events/${currentUserId}/${id}`), null);
-        // events will refresh via onValue
-    } catch (err) {
-        alert('Error deleting event.');
-        console.error(err);
-    }
-}
-
-async function addEvent(date, time, title, desc) {
-    if (!currentUserId) return;
-    if (!date || !title) {
-        alert('Please enter at least a date and title.');
-        return;
-    }
-    const newEvent = { date, time: time || '', title, desc: desc || '' };
-    try {
-        await push(ref(database, `events/${currentUserId}`), newEvent);
-        // Clear form
-        eventDate.value = '';
-        eventTime.value = '';
-        eventTitle.value = '';
-        eventDesc.value = '';
-        // events will refresh via onValue
-    } catch (err) {
-        alert('Error adding event.');
-        console.error(err);
-    }
-}
-
+// ===== UPDATE TASK COUNT =====
 function updateTaskCount() {
     const today = new Date().toISOString().split('T')[0];
     const todayEvents = events.filter(e => e.date === today);
@@ -268,65 +494,28 @@ function updateTaskCount() {
 // ===== AUTO-GENERATE SCHEDULE =====
 function generateSchedule() {
     if (!currentUserId) return;
-    // Generate events for class days (Mon, Wed, Fri) for the next 4 weeks
     const today = new Date();
     const start = new Date(today);
-    start.setDate(today.getDate() - today.getDay() + 1); // Monday this week
+    start.setDate(today.getDate() - today.getDay() + 1);
     const end = new Date(start);
-    end.setDate(start.getDate() + 28); // 4 weeks
+    end.setDate(start.getDate() + 28);
 
     let count = 0;
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const day = d.getDay();
-        if (day === 1 || day === 3 || day === 5) { // Mon, Wed, Fri
+        if (day === 1 || day === 3 || day === 5) {
             const dateStr = d.toISOString().split('T')[0];
-            // Check if event already exists for this date
             const exists = events.some(e => e.date === dateStr);
             if (!exists) {
-                const title = 'ICT Class';
-                const desc = 'Regular ICT class session';
-                const time = '18:30';
-                push(ref(database, `events/${currentUserId}`), { date: dateStr, time, title, desc });
+                saveEventToSheets(dateStr, '18:30', 'ICT Class', 'Regular ICT class session', currentUserId);
                 count++;
             }
         }
     }
+    // Reload events after generation
+    setTimeout(() => loadEventsFromSheets(), 1000);
     alert(`Generated ${count} new class events for the next 4 weeks.`);
 }
-
-// ===== NOTIFICATION EDITOR =====
-editNotifBtn.addEventListener('click', () => {
-    // Pre-fill modal with current message
-    notifInput.value = notificationText.textContent;
-    openModal('editNotifModal');
-});
-
-saveNotifBtn.addEventListener('click', async () => {
-    const newMsg = notifInput.value.trim();
-    if (!newMsg) { alert('Please enter a message.'); return; }
-    try {
-        // Save to Firebase under 'notifications' with a unique key
-        const notifRef = ref(database, 'notifications');
-        await push(notifRef, { text: newMsg, timestamp: Date.now() });
-        // The realtime listener will update the notification bar automatically
-        closeModal('editNotifModal');
-        alert('Notification updated successfully!');
-    } catch (err) {
-        alert('Error updating notification.');
-        console.error(err);
-    }
-});
-
-// ===== EVENT LISTENERS =====
-addEventBtn.addEventListener('click', () => {
-    addEvent(eventDate.value, eventTime.value, eventTitle.value, eventDesc.value);
-});
-
-searchEvent.addEventListener('input', () => {
-    renderEvents(events);
-});
-
-generateScheduleBtn.addEventListener('click', generateSchedule);
 
 // ===== LOGIN =====
 async function loginUser(phone, pass) {
@@ -585,6 +774,30 @@ document.getElementById('saveProfileBtn').addEventListener('click', () => {
     saveProfile(data);
 });
 
+// ===== ADMIN NOTIFICATION =====
+editNotifBtn.addEventListener('click', () => {
+    notifInput.value = notificationText.textContent;
+    notifSender.value = 'Admin';
+    openModal('adminNotifModal');
+});
+
+saveNotifBtn.addEventListener('click', () => {
+    const text = notifInput.value.trim();
+    const sender = notifSender.value.trim() || 'Admin';
+    sendNotification(text, sender);
+});
+
+// ===== CALENDAR EVENT BINDINGS =====
+addEventBtn.addEventListener('click', () => {
+    addEvent(eventDate.value, eventTime.value, eventTitle.value, eventDesc.value);
+});
+
+searchEvent.addEventListener('input', () => {
+    renderEvents(events);
+});
+
+generateScheduleBtn.addEventListener('click', generateSchedule);
+
 // ===== SIDEBAR NAVIGATION =====
 document.querySelectorAll('.sidebar .nav-item[data-section]').forEach(item => {
     item.addEventListener('click', function() {
@@ -653,9 +866,11 @@ function getBotReply(input) {
     if (lower.includes('institute') || lower.includes('school') || lower.includes('academy'))
         return '🏫 We partner with Sakya Academy, Yahansa, Nanik, Sipwin, and IMS Kandy. Check the Institutes section!';
     if (lower.includes('calendar') || lower.includes('event') || lower.includes('task'))
-        return '📅 Use the Calendar section to add events, tasks, and class dates. You can also auto-generate a study schedule.';
+        return '📅 Use the Calendar section to add events. Data is saved to Google Sheets with Firebase backup.';
     if (lower.includes('notification') || lower.includes('message'))
-        return '🔔 You can edit the notification bar message by clicking the "Edit" button on the notification bar.';
+        return '🔔 Admins can update notifications via the "Admin" button on the notification bar.';
+    if (lower.includes('sheets') || lower.includes('google'))
+        return '📊 All calendar events and notifications are saved to Google Sheets with Firebase as backup.';
     return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar, notifications, and profile updates.';
 }
 
@@ -677,8 +892,9 @@ document.addEventListener('click', (e) => {
     }
 });
 
-console.log('🔥 Firebase connected with your custom configuration.');
+console.log('🔥 Firebase connected!');
+console.log('📊 Google Sheets integration enabled.');
+console.log('📅 Calendar events save to both Google Sheets and Firebase.');
+console.log('🔔 Notifications save to both Google Sheets and Firebase.');
 console.log('👤 Profile image: Profile.png');
-console.log('🏫 Institutes loaded: Sakya, Yahansa, Nanik, Sipwin, IMS Kandy');
-console.log('📅 Calendar and task management active.');
-console.log('🔔 Notification bar can be edited via the "Edit" button.');
+console.log('
