@@ -1,20 +1,15 @@
 // ============================================================
-// FILE: script.js (COMPLETE - WITH PROFILE PHOTO UPLOAD)
+// FILE: script.js (Advanced Chatbot + Mobile UI + Photo Upload)
 // ============================================================
 
-// ============================================================
-// FIREBASE IMPORTS
-// ============================================================
+// ===== FIREBASE IMPORTS =====
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-analytics.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithPopup, GoogleAuthProvider, updatePassword, onAuthStateChanged, signOut }
-from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithPopup, GoogleAuthProvider, updatePassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getDatabase, ref, set, update, get, child, push, remove, onValue } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
 
-// ============================================================
-// FIREBASE CONFIG
-// ============================================================
+// ===== FIREBASE CONFIG =====
 const firebaseConfig = {
     apiKey: "AIzaSyCcSHVnPeGa73lSh-vZNWJDod-C11lAciI",
     authDomain: "ict-from-abc.firebaseapp.com",
@@ -25,9 +20,7 @@ const firebaseConfig = {
     measurementId: "G-XYXH34MX7K"
 };
 
-// ============================================================
-// INIT FIREBASE
-// ============================================================
+// ===== INIT FIREBASE =====
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
@@ -35,15 +28,10 @@ const database = getDatabase(app);
 const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 
-// ============================================================
-// GOOGLE SHEETS NOTIFICATION
-// ============================================================
-const GOOGLE_SHEETS_URL =
-    'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLDVD0TZD9vBDVClfGmQYxXGl3wPopuYdzlP0RQvjXqkmVW305TYaHFcUse5EyJoSmRM9h5OkDmRYb/pub?gid=0&single=true&output=csv';
+// ===== GOOGLE SHEETS NOTIFICATION =====
+const GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLDVD0TZD9vBDVClfGmQYxXGl3wPopuYdzlP0RQvjXqkmVW305TYaHFcUse5EyJoSmRM9h5OkDmRYb/pub?gid=0&single=true&output=csv';
 
-// ============================================================
-// DOM REFS
-// ============================================================
+// ===== DOM REFS =====
 const authScreen = document.getElementById('authScreen');
 const dashScreen = document.getElementById('dashboardScreen');
 const loginPhone = document.getElementById('loginPhoneInput');
@@ -63,7 +51,6 @@ const profileImgDisplay = document.getElementById('profileImgDisplay');
 const profilePhotoInput = document.getElementById('profilePhotoInput');
 const uploadStatus = document.getElementById('uploadStatus');
 
-// Notification Bar
 const notifBar = document.getElementById('notificationBar');
 const notifMarquee = document.getElementById('notifMarquee');
 
@@ -80,40 +67,26 @@ const calendarMonthYear = document.getElementById('calendarMonthYear');
 const eventList = document.getElementById('eventList');
 const eventSearchInput = document.getElementById('eventSearchInput');
 
-// ============================================================
-// GOOGLE SHEETS NOTIFICATION FETCH
-// ============================================================
+// ===== GOOGLE SHEETS NOTIFICATION FETCH =====
 async function fetchGoogleSheetsNotifications() {
     try {
         const response = await fetch(GOOGLE_SHEETS_URL);
         if (!response.ok) throw new Error('Failed to fetch');
         const csvText = await response.text();
         const lines = csvText.split('\n').filter(line => line.trim());
-        if (lines.length < 2) {
-            notifBar.style.display = 'none';
-            return;
-        }
+        if (lines.length < 2) { notifBar.style.display = 'none'; return; }
         const messages = [];
         for (let i = 1; i < lines.length; i++) {
             const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
             if (cols.length >= 3) {
                 const message = cols[1] || '';
-                const active = cols[2]?.toUpperCase() === 'TRUE' ||
-                    cols[2]?.toUpperCase() === 'YES' ||
-                    cols[2]?.toUpperCase() === '1';
-                if (active && message) {
-                    messages.push(message);
-                }
+                const active = cols[2]?.toUpperCase() === 'TRUE' || cols[2]?.toUpperCase() === 'YES' || cols[2]?.toUpperCase() === '1';
+                if (active && message) messages.push(message);
             }
         }
-        if (messages.length === 0) {
-            notifBar.style.display = 'none';
-            return;
-        }
+        if (messages.length === 0) { notifBar.style.display = 'none'; return; }
         let html = '';
-        messages.forEach(msg => {
-            html += `<span>📢 ${msg}</span>`;
-        });
+        messages.forEach(msg => { html += `<span>📢 ${msg}</span>`; });
         notifMarquee.innerHTML = html;
         notifBar.style.display = 'block';
         document.body.classList.add('with-notif');
@@ -124,47 +97,35 @@ async function fetchGoogleSheetsNotifications() {
         document.body.classList.add('with-notif');
     }
 }
-
 document.getElementById('closeNotifBtn').addEventListener('click', () => {
     notifBar.style.display = 'none';
     document.body.classList.remove('with-notif');
 });
 
-// ============================================================
-// LOCAL STORAGE HELPERS
-// ============================================================
+// ===== LOCAL STORAGE =====
 function saveUserLocally(uid, data) {
     localStorage.setItem('ict_user_uid', uid);
     localStorage.setItem('ict_user_data', JSON.stringify(data));
 }
-
 function getUserLocally() {
     const uid = localStorage.getItem('ict_user_uid');
     const data = localStorage.getItem('ict_user_data');
     return { uid, data: data ? JSON.parse(data) : null };
 }
-
 function clearUserLocally() {
     localStorage.removeItem('ict_user_uid');
     localStorage.removeItem('ict_user_data');
 }
 
-// ============================================================
-// UPDATE PROFILE PHOTO DISPLAY
-// ============================================================
+// ===== PROFILE PHOTO UPLOAD =====
 function updateProfilePhoto(photoURL) {
-    const defaultPhoto = 'Profile.png';
-    const url = photoURL || defaultPhoto;
-
-    // Update all profile photo elements
+    const url = photoURL || 'Profile.png';
     if (profileAvatarImg) profileAvatarImg.src = url;
     if (profileImgDisplay) profileImgDisplay.src = url;
     if (dashAvatar) {
         const img = dashAvatar.querySelector('img');
         if (img) img.src = url;
     }
-
-    // Also update local storage data
     const userData = getUserLocally();
     if (userData.data) {
         userData.data.photo = url;
@@ -172,119 +133,63 @@ function updateProfilePhoto(photoURL) {
     }
 }
 
-// ============================================================
-// PROFILE PHOTO UPLOAD TO FIREBASE STORAGE
-// ============================================================
 async function uploadProfilePhoto(file) {
     const user = auth.currentUser;
-    if (!user) {
-        alert('Please login first.');
-        return;
-    }
-
-    if (!file || !file.type.startsWith('image/')) {
-        alert('Please select an image file.');
-        return;
-    }
-
-    // Max file size: 5MB
-    if (file.size > 5 * 1024 * 1024) {
-        alert('File is too large. Please select an image under 5MB.');
-        return;
-    }
-
+    if (!user) { alert('Please login first.'); return; }
+    if (!file || !file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
+    if (file.size > 5 * 1024 * 1024) { alert('File is too large. Max 5MB.'); return; }
     uploadStatus.textContent = '⏳ Uploading...';
     uploadStatus.style.color = '#ffaa00';
-
     try {
-        // Create a unique filename
         const ext = file.name.split('.').pop();
         const filename = `profile_photos/${user.uid}_${Date.now()}.${ext}`;
         const fileRef = storageRef(storage, filename);
-
-        // Upload file
         const snapshot = await uploadBytes(fileRef, file);
         const downloadURL = await getDownloadURL(snapshot.ref);
-
-        // Save URL to database
         await update(ref(database, `users/${user.uid}`), { photo: downloadURL });
-
-        // Update local storage
         const userData = getUserLocally();
         if (userData.data) {
             userData.data.photo = downloadURL;
             saveUserLocally(user.uid, userData.data);
         }
-
-        // Update UI
         updateProfilePhoto(downloadURL);
         uploadStatus.textContent = '✅ Photo updated!';
         uploadStatus.style.color = '#4caf50';
-
-        // Also update the profile photo in the top bar
-        if (dashNameBadge) {
-            // Profile photo is already updated via updateProfilePhoto
-        }
-
-        console.log('Profile photo uploaded successfully:', downloadURL);
-
+        console.log('Profile photo uploaded:', downloadURL);
     } catch (err) {
         console.error('Upload error:', err);
-        if (err.message.includes('PERMISSION_DENIED')) {
-            uploadStatus.textContent = '❌ Permission denied. Check Firebase Storage rules.';
-            alert('❌ Permission denied to upload photo.\n\nPlease update Firebase Storage rules:\n\nallow read, write: if request.auth != null;');
-        } else {
-            uploadStatus.textContent = '❌ Upload failed: ' + err.message;
-            alert('Error uploading photo: ' + err.message);
-        }
+        uploadStatus.textContent = '❌ Upload failed';
         uploadStatus.style.color = '#ff4444';
+        alert('Error uploading photo: ' + err.message);
     }
 }
-
-// ============================================================
-// PROFILE PHOTO INPUT HANDLER
-// ============================================================
 if (profilePhotoInput) {
     profilePhotoInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
-        if (file) {
-            uploadProfilePhoto(file);
-        }
-        // Reset input so same file can be re-uploaded
+        if (file) uploadProfilePhoto(file);
         profilePhotoInput.value = '';
     });
 }
 
-// ============================================================
-// SHOW DASHBOARD
-// ============================================================
+// ===== SHOW DASHBOARD =====
 function showDashboard(userData) {
     authScreen.classList.add('hidden');
     dashScreen.classList.remove('hidden');
-
     const name = userData?.fullName || userData?.name || 'Student';
     const phone = userData?.phone || '-';
     const photo = userData?.photo || 'Profile.png';
-
     dashName.textContent = name;
     dashNameBadge.textContent = name;
     pFullName.textContent = name;
     pPhone.textContent = phone;
     profileNameDisplay.textContent = name;
     profilePhoneDisplay.textContent = phone;
-
-    // Update profile photo everywhere
     updateProfilePhoto(photo);
-
-    if (userData?.uid) {
-        loadEvents(userData.uid);
-    }
+    if (userData?.uid) loadEvents(userData.uid);
     fetchGoogleSheetsNotifications();
 }
 
-// ============================================================
-// AUTH FUNCTIONS
-// ============================================================
+// ===== AUTH =====
 async function loginUser(phone, pass) {
     if (!phone || !pass) { alert('Please enter phone and password.'); return; }
     loginBtn.disabled = true;
@@ -385,13 +290,8 @@ async function saveProfile(data) {
     }
 }
 
-// ============================================================
-// OTP FOR FORGOT PASSWORD
-// ============================================================
-let otpCode = '',
-    otpVerified = false,
-    currentPhone = '',
-    otpTimerInterval = null;
+// ===== OTP =====
+let otpCode = '', otpVerified = false, currentPhone = '', otpTimerInterval = null;
 
 function generateOTP() { return Math.floor(100000 + Math.random() * 900000).toString(); }
 
@@ -411,7 +311,6 @@ function startOtpTimer(seconds = 60) {
         }
     }, 1000);
 }
-
 document.getElementById('sendOtpBtn').addEventListener('click', () => {
     const phone = document.getElementById('forgotPhone').value.trim();
     if (!phone) { alert('Enter phone number.'); return; }
@@ -422,11 +321,9 @@ document.getElementById('sendOtpBtn').addEventListener('click', () => {
     document.getElementById('sendOtpBtn').disabled = true;
     document.getElementById('otpTimer').textContent = '📨 OTP sent! Check console or SMS.';
     document.getElementById('otpStatus').textContent = '';
-    document.getElementById('otpStatus').className = '';
     startOtpTimer(60);
     alert(`OTP sent to ${phone} (Demo: ${otpCode})`);
 });
-
 document.getElementById('verifyOtpBtn').addEventListener('click', () => {
     const entered = document.getElementById('otpInput').value.trim();
     if (!entered) { alert('Enter OTP code.'); return; }
@@ -441,7 +338,6 @@ document.getElementById('verifyOtpBtn').addEventListener('click', () => {
         document.getElementById('otpStatus').style.color = '#ff4444';
     }
 });
-
 document.getElementById('resetPassBtn').addEventListener('click', async () => {
     if (!otpVerified) { alert('Please verify OTP first.'); return; }
     const newPass = document.getElementById('resetNewPass').value.trim();
@@ -467,9 +363,7 @@ document.getElementById('resetPassBtn').addEventListener('click', async () => {
     }
 });
 
-// ============================================================
-// AUTH STATE OBSERVER
-// ============================================================
+// ===== AUTH STATE =====
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         const snapshot = await get(child(ref(database), `users/${user.uid}`));
@@ -489,17 +383,13 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// ============================================================
-// EVENT BINDINGS (Auth)
-// ============================================================
+// ===== EVENT BINDINGS (Auth) =====
 loginBtn.addEventListener('click', () => loginUser(loginPhone.value.trim(), loginPass.value.trim()));
 loginPass.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
 googleBtn.addEventListener('click', googleLogin);
 
-document.getElementById('signupLink').addEventListener('click', (e) => { e.preventDefault();
-    openModal('signupModal'); });
-document.getElementById('forgotLink').addEventListener('click', (e) => { e.preventDefault();
-    openModal('forgotModal'); });
+document.getElementById('signupLink').addEventListener('click', (e) => { e.preventDefault(); openModal('signupModal'); });
+document.getElementById('forgotLink').addEventListener('click', (e) => { e.preventDefault(); openModal('forgotModal'); });
 
 document.getElementById('signupBtn').addEventListener('click', () => {
     const name = document.getElementById('signupName').value.trim();
@@ -507,11 +397,9 @@ document.getElementById('signupBtn').addEventListener('click', () => {
     const pass = document.getElementById('signupPass').value.trim();
     signupUser(name, phone, pass);
 });
-
 document.getElementById('changePassBtn').addEventListener('click', () => {
     changePassword(document.getElementById('newPass').value.trim());
 });
-
 document.getElementById('editProfileBtn').addEventListener('click', () => {
     const data = getUserLocally().data || {};
     document.getElementById('editFullName').value = data.fullName || data.name || '';
@@ -523,10 +411,8 @@ document.getElementById('editProfileBtn').addEventListener('click', () => {
     document.getElementById('editBirthday').value = data.birthday || '';
     document.getElementById('editNic').value = data.nic || '';
     document.getElementById('editInstitute').value = data.institute || '';
-    // Remove photo URL field from edit modal since we have upload
     openModal('profileModal');
 });
-
 document.getElementById('saveProfileBtn').addEventListener('click', () => {
     const data = {
         fullName: document.getElementById('editFullName').value.trim(),
@@ -542,9 +428,7 @@ document.getElementById('saveProfileBtn').addEventListener('click', () => {
     saveProfile(data);
 });
 
-// ============================================================
-// SIDEBAR NAVIGATION
-// ============================================================
+// ===== SIDEBAR NAVIGATION =====
 document.querySelectorAll('.sidebar .nav-item[data-section]').forEach(item => {
     item.addEventListener('click', function() {
         document.querySelectorAll('.sidebar .nav-item').forEach(el => el.classList.remove('active'));
@@ -552,15 +436,11 @@ document.querySelectorAll('.sidebar .nav-item[data-section]').forEach(item => {
         document.querySelectorAll('.section-content').forEach(el => el.classList.add('hidden'));
         const target = document.getElementById('section-' + this.dataset.section);
         if (target) target.classList.remove('hidden');
-        if (this.dataset.section === 'calendar') {
-            renderCalendar();
-        }
+        if (this.dataset.section === 'calendar') renderCalendar();
     });
 });
 
-// ============================================================
-// LOGOUT
-// ============================================================
+// ===== LOGOUT =====
 document.getElementById('logoutBtn').addEventListener('click', async (e) => {
     e.preventDefault();
     try { if (auth.currentUser) await signOut(auth); } catch (e) {}
@@ -570,26 +450,20 @@ document.getElementById('logoutBtn').addEventListener('click', async (e) => {
     notifBar.style.display = 'none';
 });
 
-// ============================================================
-// MODAL HELPERS
-// ============================================================
+// ===== MODAL HELPERS =====
 function openModal(id) { document.getElementById(id).classList.add('active'); }
-
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 window.openModal = openModal;
 window.closeModal = closeModal;
-document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', function(e) { if (e.target === this)
-        this.classList.remove('active'); }));
+document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); }));
 
 // ============================================================
-// CALENDAR SYSTEM - CORE FUNCTIONS
+// CALENDAR SYSTEM
 // ============================================================
-
 function loadEvents(uid) {
     const eventsRef = ref(database, `events/${uid}`);
     onValue(eventsRef, (snapshot) => {
-        const data = snapshot.val();
-        eventsCache = data || {};
+        eventsCache = snapshot.val() || {};
         const calendarSection = document.getElementById('section-calendar');
         if (!calendarSection.classList.contains('hidden')) {
             renderCalendar();
@@ -618,7 +492,6 @@ async function saveEvent(uid, eventData) {
         throw err;
     }
 }
-
 async function updateEvent(uid, eventKey, eventData) {
     const eventRef = ref(database, `events/${uid}/${eventKey}`);
     try {
@@ -632,7 +505,6 @@ async function updateEvent(uid, eventKey, eventData) {
         throw err;
     }
 }
-
 async function deleteEvent(uid, eventKey) {
     const eventRef = ref(database, `events/${uid}/${eventKey}`);
     try {
@@ -654,13 +526,10 @@ function getEventsForDate(date) {
     if (!userData.uid) return results;
     const events = eventsCache || {};
     for (const [key, event] of Object.entries(events)) {
-        if (event.date === dateStr) {
-            results.push({ key, ...event });
-        }
+        if (event.date === dateStr) results.push({ key, ...event });
     }
     return results;
 }
-
 function getAllEvents() {
     const results = [];
     const userData = getUserLocally();
@@ -672,26 +541,16 @@ function getAllEvents() {
     return results;
 }
 
-// ============================================================
-// RENDER CALENDAR
-// ============================================================
 function renderCalendar() {
     const firstDay = new Date(currentYear, currentMonth, 1).getDay();
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
-
-    calendarMonthYear.textContent = new Date(currentYear, currentMonth).toLocaleDateString('en-US', {
-        month: 'long',
-        year: 'numeric'
-    });
-
+    calendarMonthYear.textContent = new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     while (calendarGrid.children.length > 7) {
         calendarGrid.removeChild(calendarGrid.lastChild);
     }
-
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-
     for (let i = firstDay - 1; i >= 0; i--) {
         const day = daysInPrevMonth - i;
         const cell = document.createElement('div');
@@ -699,26 +558,21 @@ function renderCalendar() {
         cell.innerHTML = `<span class="day-number">${day}</span>`;
         calendarGrid.appendChild(cell);
     }
-
     for (let day = 1; day <= daysInMonth; day++) {
         const cell = document.createElement('div');
         const dateObj = new Date(currentYear, currentMonth, day);
         const dateStr = dateObj.toISOString().split('T')[0];
         const isToday = dateStr === todayStr;
-
         cell.className = 'day-cell';
         if (isToday) cell.classList.add('today');
-
         const events = getEventsForDate(dateObj);
         if (events.length > 0) {
             cell.classList.add('has-event');
         }
-
         cell.innerHTML = `<span class="day-number">${day}</span>`;
         if (events.length > 0) {
             cell.innerHTML += `<span class="event-dot"></span>`;
         }
-
         cell.addEventListener('click', () => {
             selectedDate = dateObj;
             renderEventsForDate(dateObj);
@@ -736,10 +590,8 @@ function renderCalendar() {
             editingEventKey = null;
             openModal('eventModal');
         });
-
         calendarGrid.appendChild(cell);
     }
-
     const totalCells = calendarGrid.children.length;
     const remaining = 42 - totalCells;
     for (let day = 1; day <= remaining; day++) {
@@ -748,57 +600,47 @@ function renderCalendar() {
         cell.innerHTML = `<span class="day-number">${day}</span>`;
         calendarGrid.appendChild(cell);
     }
-
     if (!selectedDate) {
         selectedDate = today;
         renderEventsForDate(today);
     }
 }
 
-// ============================================================
-// RENDER EVENTS FOR DATE
-// ============================================================
 function renderEventsForDate(date) {
     const events = getEventsForDate(date);
     const dateStr = date.toISOString().split('T')[0];
-
     if (events.length === 0) {
         eventList.innerHTML = `<div class="no-events">📭 No events for ${dateStr}. Click a date to add one.</div>`;
         return;
     }
-
     let html = '';
     const typeEmojis = { 'work': '💼', 'task': '✅', 'class': '📚', 'other': '📌' };
     const typeLabels = { 'work': 'Work', 'task': 'Task', 'class': 'Class', 'other': 'Other' };
-
     events.forEach(event => {
         const emoji = typeEmojis[event.type] || '📌';
         const label = typeLabels[event.type] || 'Other';
         html += `
-                    <div class="event-item" data-key="${event.key}">
-                        <div class="event-info">
-                            <div class="event-title">${emoji} ${event.title || 'Untitled'}</div>
-                            <div class="event-desc">${event.description || ''} ${event.time ? '· ' + event.time : ''}</div>
-                            <div class="event-time">${label}</div>
-                        </div>
-                        <div style="display:flex;gap:0.3rem;">
-                            <button class="event-edit" data-key="${event.key}" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:0.9rem;">✏️</button>
-                            <button class="event-delete" data-key="${event.key}" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.9rem;">🗑️</button>
-                        </div>
-                    </div>
-                `;
+            <div class="event-item" data-key="${event.key}">
+                <div class="event-info">
+                    <div class="event-title">${emoji} ${event.title || 'Untitled'}</div>
+                    <div class="event-desc">${event.description || ''} ${event.time ? '· ' + event.time : ''}</div>
+                    <div class="event-time">${label}</div>
+                </div>
+                <div style="display:flex;gap:0.3rem;">
+                    <button class="event-edit" data-key="${event.key}" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:0.9rem;">✏️</button>
+                    <button class="event-delete" data-key="${event.key}" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.9rem;">🗑️</button>
+                </div>
+            </div>
+        `;
     });
-
     eventList.innerHTML = html;
-
     document.querySelectorAll('.event-edit').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const key = btn.dataset.key;
             const userData = getUserLocally();
             if (!userData.uid) return;
-            const events = eventsCache || {};
-            const event = events[key];
+            const event = (eventsCache || {})[key];
             if (!event) return;
             editingEventKey = key;
             document.getElementById('eventDate').value = event.date || '';
@@ -812,7 +654,6 @@ function renderEventsForDate(date) {
             openModal('eventModal');
         });
     });
-
     document.querySelectorAll('.event-delete').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -823,38 +664,22 @@ function renderEventsForDate(date) {
                 try {
                     await deleteEvent(userData.uid, key);
                     loadEvents(userData.uid);
-                } catch (err) {
-                    console.error(err);
-                }
+                } catch (err) { console.error(err); }
             }
         });
     });
 }
 
-// ============================================================
-// CALENDAR EVENT BINDINGS
-// ============================================================
-
 document.getElementById('prevMonthBtn').addEventListener('click', () => {
-    if (currentMonth === 0) {
-        currentMonth = 11;
-        currentYear--;
-    } else {
-        currentMonth--;
-    }
+    if (currentMonth === 0) { currentMonth = 11;
+        currentYear--; } else { currentMonth--; }
     renderCalendar();
 });
-
 document.getElementById('nextMonthBtn').addEventListener('click', () => {
-    if (currentMonth === 11) {
-        currentMonth = 0;
-        currentYear++;
-    } else {
-        currentMonth++;
-    }
+    if (currentMonth === 11) { currentMonth = 0;
+        currentYear++; } else { currentMonth++; }
     renderCalendar();
 });
-
 document.getElementById('todayBtn').addEventListener('click', () => {
     const today = new Date();
     currentMonth = today.getMonth();
@@ -866,23 +691,18 @@ document.getElementById('todayBtn').addEventListener('click', () => {
 document.getElementById('saveEventBtn').addEventListener('click', async () => {
     const userData = getUserLocally();
     if (!userData.uid) { alert('Please login first.'); return; }
-
     const date = document.getElementById('eventDate').value;
     const title = document.getElementById('eventTitle').value.trim();
     const description = document.getElementById('eventDesc').value.trim();
     const time = document.getElementById('eventTime').value;
     const type = document.getElementById('eventType').value;
-
     if (!date) { alert('Please select a date.'); return; }
     if (!title) { alert('Please enter a title.'); return; }
-
     const eventData = { date, title, description, time, type };
-
     const saveBtn = document.getElementById('saveEventBtn');
     saveBtn.disabled = true;
     saveBtn.textContent = '⏳ Saving...';
     saveBtn.classList.add('btn-loading');
-
     try {
         if (editingEventKey) {
             await updateEvent(userData.uid, editingEventKey, eventData);
@@ -892,20 +712,15 @@ document.getElementById('saveEventBtn').addEventListener('click', async () => {
         closeModal('eventModal');
         loadEvents(userData.uid);
         renderCalendar();
-        if (selectedDate) {
-            renderEventsForDate(selectedDate);
-        }
+        if (selectedDate) renderEventsForDate(selectedDate);
         alert(editingEventKey ? 'Event updated!' : 'Event saved!');
         editingEventKey = null;
-    } catch (err) {
-        console.error(err);
-    } finally {
+    } catch (err) { console.error(err); } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = editingEventKey ? '💾 Update Event' : '💾 Save Event';
         saveBtn.classList.remove('btn-loading');
     }
 });
-
 document.getElementById('deleteEventBtn').addEventListener('click', async () => {
     if (!editingEventKey) return;
     const userData = getUserLocally();
@@ -918,22 +733,14 @@ document.getElementById('deleteEventBtn').addEventListener('click', async () => 
             renderCalendar();
             if (selectedDate) renderEventsForDate(selectedDate);
             editingEventKey = null;
-        } catch (err) {
-            console.error(err);
-        }
+        } catch (err) { console.error(err); }
     }
 });
 
-// ============================================================
-// SEARCH EVENTS
-// ============================================================
+// ===== SEARCH =====
 document.getElementById('searchEventsBtn').addEventListener('click', () => {
     const query = eventSearchInput.value.trim().toLowerCase();
-    if (!query) {
-        if (selectedDate) renderEventsForDate(selectedDate);
-        return;
-    }
-
+    if (!query) { if (selectedDate) renderEventsForDate(selectedDate); return; }
     const allEvents = getAllEvents();
     const filtered = allEvents.filter(e =>
         (e.title && e.title.toLowerCase().includes(query)) ||
@@ -941,44 +748,38 @@ document.getElementById('searchEventsBtn').addEventListener('click', () => {
         (e.type && e.type.toLowerCase().includes(query)) ||
         (e.date && e.date.includes(query))
     );
-
     if (filtered.length === 0) {
         eventList.innerHTML = `<div class="no-events">🔍 No events found matching "${query}"</div>`;
         return;
     }
-
     const typeEmojis = { 'work': '💼', 'task': '✅', 'class': '📚', 'other': '📌' };
     const typeLabels = { 'work': 'Work', 'task': 'Task', 'class': 'Class', 'other': 'Other' };
-
-    let html =
-        `<div style="margin-bottom:0.5rem;color:var(--text-gray);font-size:0.8rem;">🔍 Found ${filtered.length} results for "${query}"</div>`;
+    let html = `<div style="margin-bottom:0.5rem;color:var(--text-gray);font-size:0.8rem;">🔍 Found ${filtered.length} results for "${query}"</div>`;
     filtered.forEach(event => {
         const emoji = typeEmojis[event.type] || '📌';
         const label = typeLabels[event.type] || 'Other';
         html += `
-                    <div class="event-item">
-                        <div class="event-info">
-                            <div class="event-title">${emoji} ${event.title || 'Untitled'}</div>
-                            <div class="event-desc">📅 ${event.date || ''} ${event.time ? '· ' + event.time : ''}</div>
-                            <div class="event-time">${label}</div>
-                        </div>
-                    </div>
-                `;
+            <div class="event-item">
+                <div class="event-info">
+                    <div class="event-title">${emoji} ${event.title || 'Untitled'}</div>
+                    <div class="event-desc">📅 ${event.date || ''} ${event.time ? '· ' + event.time : ''}</div>
+                    <div class="event-time">${label}</div>
+                </div>
+            </div>
+        `;
     });
     eventList.innerHTML = html;
 });
-
 document.getElementById('clearSearchBtn').addEventListener('click', () => {
     eventSearchInput.value = '';
     if (selectedDate) renderEventsForDate(selectedDate);
 });
-
 eventSearchInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('searchEventsBtn').click();
 });
 
 // ============================================================
-// CHATBOT
+// ADVANCED CHATBOT WITH CONTEXT
 // ============================================================
 const chatToggle = document.getElementById('chatToggle');
 const chatWindow = document.getElementById('chatWindow');
@@ -987,7 +788,19 @@ const chatInput = document.getElementById('chatInput');
 const chatSend = document.getElementById('chatSend');
 const chatMessages = document.getElementById('chatMessages');
 
-chatToggle.addEventListener('click', () => chatWindow.classList.toggle('open'));
+let chatContext = [];
+const MAX_CONTEXT = 10;
+
+chatToggle.addEventListener('click', () => {
+    chatWindow.classList.toggle('open');
+    if (chatWindow.classList.contains('open') && chatMessages.children.length === 1) {
+        // Auto-greet with user name if available
+        const userData = getUserLocally();
+        if (userData.data?.fullName) {
+            addMessage(`👋 Welcome back, ${userData.data.fullName}! I'm your ICT assistant. How can I help?`, 'bot', '🤖 Assistant');
+        }
+    }
+});
 chatClose.addEventListener('click', () => chatWindow.classList.remove('open'));
 
 function addMessage(text, type, sender = '') {
@@ -1001,49 +814,102 @@ function addMessage(text, type, sender = '') {
     }
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    // Add to context
+    chatContext.push({ role: type === 'user' ? 'user' : 'bot', text });
+    if (chatContext.length > MAX_CONTEXT) chatContext.shift();
+}
+
+function showTypingIndicator() {
+    const div = document.createElement('div');
+    div.className = 'typing-indicator';
+    div.id = 'typingIndicator';
+    div.innerHTML = '<span></span><span></span><span></span>';
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function hideTypingIndicator() {
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) indicator.remove();
 }
 
 function getBotReply(input) {
     const lower = input.toLowerCase();
+    const context = chatContext.map(c => c.text).join(' ').toLowerCase();
+
+    // Check if user is asking about something from context
+    if (context.includes('schedule') && lower.includes('when')) {
+        return '📅 Class days are Monday, Wednesday, and Friday at 6:30 PM.';
+    }
+    if (context.includes('fee') && lower.includes('cost')) {
+        return '💰 The annual fee is LKR 15,000. You can find payment details in the Payments section.';
+    }
+
+    // Intent detection
     if (lower.includes('class') || lower.includes('day') || lower.includes('schedule'))
-        return '📅 Class days: Monday, Wednesday, Friday at 6:30 PM.';
-    if (lower.includes('past paper') || lower.includes('paper'))
-        return '📄 Past Papers: https://ictfromabc.com/public-dashboard/papers/al';
-    if (lower.includes('fee') || lower.includes('price') || lower.includes('cost'))
-        return '💰 Course fees: LKR 15,000 per year. Contact 071 455 5513.';
-    if (lower.includes('contact') || lower.includes('phone'))
-        return '📞 Phone: 071 455 5513 | Email: info@ictfromabc.com';
-    if (lower.includes('profile') || lower.includes('update'))
-        return '👤 Update your profile from the Profile section. You can also upload a profile photo!';
+        return '📅 Class days: Monday, Wednesday, Friday at 6:30 PM. All sessions are recorded.';
+    if (lower.includes('past paper') || lower.includes('paper') || lower.includes('exam'))
+        return '📄 Past Papers: https://ictfromabc.com/public-dashboard/papers/al (A/L ICT)';
+    if (lower.includes('fee') || lower.includes('price') || lower.includes('cost') || lower.includes('payment'))
+        return '💰 Course fees: LKR 15,000 per year. Payment details available in the Payments section. Contact 071 455 5513 for more info.';
+    if (lower.includes('contact') || lower.includes('phone') || lower.includes('help'))
+        return '📞 Phone: 071 455 5513 | Email: info@ictfromabc.com | Visit: https://ictfromabc.com';
+    if (lower.includes('profile') || lower.includes('update') || lower.includes('photo'))
+        return '👤 You can update your profile and upload a profile photo from the Profile section. Click the camera icon on your picture to upload.';
     if (lower.includes('otp') || lower.includes('password') || lower.includes('reset'))
-        return '🔑 Use "Forgot Password" to reset with OTP.';
+        return '🔑 Use "Forgot Password" on the login page to reset with OTP. The OTP will be sent to your phone (demo code shown in console).';
     if (lower.includes('institute') || lower.includes('school') || lower.includes('academy'))
-        return '🏫 We partner with Sakya Academy, Yahansa, Nanik, Sipwin, and IMS Kandy. Check the Institutes section!';
-    if (lower.includes('calendar') || lower.includes('event') || lower.includes('task'))
+        return '🏫 We partner with Sakya Academy, Yahansa, Nanik, Sipwin, and IMS Kandy. Check the Institutes section for details!';
+    if (lower.includes('calendar') || lower.includes('event') || lower.includes('task') || lower.includes('schedule'))
         return '📅 Use the Calendar section to add work hours, tasks, and class dates. You can search and manage all your events!';
-    if (lower.includes('photo') || lower.includes('profile picture') || lower.includes('avatar'))
-        return '📷 You can upload a profile photo in the Profile section. Click the camera icon on your profile picture to upload.';
+    if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey'))
+        return '👋 Hello! How can I assist you with your ICT studies today?';
+    if (lower.includes('thanks') || lower.includes('thank you'))
+        return '😊 You\'re welcome! Let me know if you need anything else.';
     if (lower.includes('permission') || lower.includes('error') || lower.includes('denied'))
         return '🔐 If you see a permission error, check your Firebase security rules. They should allow authenticated users to read/write their own data.';
-    return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar events, and profile updates.';
+    if (lower.includes('subject') || lower.includes('topics'))
+        return '📚 We cover Mathematics, Physics, Chemistry, and ICT. Check the Study Topics Overview on your dashboard for detailed progress.';
+    if (lower.includes('batch') || lower.includes('al') || lower.includes('ol'))
+        return '📖 We offer courses for A/L 2028, 2027, 2026 and O/L 2025, 2024. Check the sidebar for specific course modules.';
+
+    // Default response with context memory
+    return `🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar events, and profile updates. Could you clarify your question?`;
 }
 
-chatSend.addEventListener('click', () => {
+function handleChatInput() {
     const text = chatInput.value.trim();
     if (!text) return;
+
+    // Add user message
     addMessage(text, 'user', '👤 You');
     chatInput.value = '';
+    showTypingIndicator();
+
+    // Simulate bot thinking
     setTimeout(() => {
+        hideTypingIndicator();
         const reply = getBotReply(text);
         addMessage(reply, 'bot', '🤖 Assistant');
-    }, 500);
+    }, 600);
+}
+
+chatSend.addEventListener('click', handleChatInput);
+chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        handleChatInput();
+    }
 });
-chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') chatSend.click(); });
+
+// Quick replies
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('quick-reply')) {
         const msg = e.target.dataset.msg;
-        if (msg) { chatInput.value = msg;
-            chatSend.click(); }
+        if (msg) {
+            chatInput.value = msg;
+            handleChatInput();
+        }
     }
 });
 
@@ -1051,7 +917,6 @@ document.addEventListener('click', (e) => {
 // INIT
 // ============================================================
 console.log('🔥 Firebase connected!');
-console.log('📊 Google Sheets notification system ready.');
-console.log('📅 Calendar system ready with Firebase storage.');
-console.log('📷 Profile photo upload ready. Click the camera icon to upload.');
-console.log('📱 Responsive UI auto-detects phone, tablet, and desktop.');
+console.log('📱 Mobile UI optimized for all devices.');
+console.log('🤖 Advanced chatbot with context memory active.');
+console.log('📷 Profile photo upload ready.');
