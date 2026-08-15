@@ -1,652 +1,648 @@
 // ============================================================
-// FILE: script.js (Add calendar functionality)
+// FILE: script.js
 // ============================================================
 
-// ... (keep all existing Firebase, auth, login, profile code) ...
+// ===== FIREBASE IMPORTS =====
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-analytics.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithPopup, GoogleAuthProvider, updatePassword, onAuthStateChanged, signOut }
+from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { getDatabase, ref, set, update, get, child, push, onValue, query, orderByChild } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
 
-// ============================================================
-// ===== CALENDAR & SCHEDULE SYSTEM =====
-// ============================================================
+// ===== FIREBASE CONFIG =====
+const firebaseConfig = {
+    apiKey: "AIzaSyCcSHVnPeGa73lSh-vZNWJDod-C11lAciI",
+    authDomain: "ict-from-abc.firebaseapp.com",
+    projectId: "ict-from-abc",
+    storageBucket: "ict-from-abc.firebasestorage.app",
+    messagingSenderId: "70545428741",
+    appId: "1:70545428741:web:2f77d3511d283116d6a76c",
+    measurementId: "G-XYXH34MX7K"
+};
 
-// ===== STATE =====
-let currentDate = new Date();
-let currentMonth = currentDate.getMonth();
-let currentYear = currentDate.getFullYear();
-let selectedDate = null;
-let allEvents = [];
-let editingEventId = null;
-let calendarEventsRef = null;
+// ===== INIT FIREBASE =====
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const database = getDatabase(app);
+const provider = new GoogleAuthProvider();
 
-// ===== DOM REFS for Calendar =====
+// ===== DOM REFS =====
+const authScreen = document.getElementById('authScreen');
+const dashScreen = document.getElementById('dashboardScreen');
+const loginPhone = document.getElementById('loginPhoneInput');
+const loginPass = document.getElementById('loginPasswordInput');
+const loginBtn = document.getElementById('loginBtn');
+const googleBtn = document.getElementById('googleBtn');
+
+const dashName = document.getElementById('dashName');
+const dashNameBadge = document.getElementById('dashNameBadge');
+const dashAvatar = document.getElementById('dashAvatar');
+const pFullName = document.getElementById('pFullName');
+const pPhone = document.getElementById('pPhone');
+const profileNameDisplay = document.getElementById('profileNameDisplay');
+const profilePhoneDisplay = document.getElementById('profilePhoneDisplay');
+const profileImgDisplay = document.getElementById('profileImgDisplay');
+const taskCount = document.getElementById('taskCount');
+
+// Calendar refs
 const calendarGrid = document.getElementById('calendarGrid');
-const calendarMonthYear = document.getElementById('calendarMonthYear');
-const calendarPrev = document.getElementById('calendarPrev');
-const calendarNext = document.getElementById('calendarNext');
-const todayBtn = document.getElementById('todayBtn');
-const addEventBtn = document.getElementById('addEventBtn');
-const generateScheduleBtn = document.getElementById('generateScheduleBtn');
-const calendarSearch = document.getElementById('calendarSearch');
-const calendarFilterType = document.getElementById('calendarFilterType');
-const clearSearchBtn = document.getElementById('clearSearchBtn');
-const eventsContainer = document.getElementById('eventsContainer');
-const eventCount = document.getElementById('eventCount');
-
-// ===== EVENT MODAL REFS =====
-const eventModal = document.getElementById('eventModal');
-const eventModalTitle = document.getElementById('eventModalTitle');
-const eventType = document.getElementById('eventType');
 const eventDate = document.getElementById('eventDate');
+const eventTime = document.getElementById('eventTime');
 const eventTitle = document.getElementById('eventTitle');
 const eventDesc = document.getElementById('eventDesc');
-const eventStart = document.getElementById('eventStart');
-const eventEnd = document.getElementById('eventEnd');
-const eventHours = document.getElementById('eventHours');
-const eventTags = document.getElementById('eventTags');
-const saveEventBtn = document.getElementById('saveEventBtn');
-const deleteEventBtn = document.getElementById('deleteEventBtn');
+const addEventBtn = document.getElementById('addEventBtn');
+const eventsContainer = document.getElementById('eventsContainer');
+const searchEvent = document.getElementById('searchEvent');
+const generateScheduleBtn = document.getElementById('generateScheduleBtn');
 
-// ===== INIT CALENDAR =====
-function initCalendar() {
-    // Set up Firebase reference for calendar events
-    const user = auth.currentUser;
-    if (user) {
-        calendarEventsRef = ref(database, `calendar/${user.uid}/events`);
-        loadEvents();
-    } else {
-        // Fallback: use local storage
-        loadEventsLocal();
-    }
-    renderCalendar();
-    renderEvents();
-    setupCalendarListeners();
+let currentUserId = null;
+let events = [];
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+
+// ===== LOCAL STORAGE =====
+function saveUserLocally(uid, data) {
+    localStorage.setItem('ict_user_uid', uid);
+    localStorage.setItem('ict_user_data', JSON.stringify(data));
+}
+function getUserLocally() {
+    const uid = localStorage.getItem('ict_user_uid');
+    const data = localStorage.getItem('ict_user_data');
+    return { uid, data: data ? JSON.parse(data) : null };
+}
+function clearUserLocally() {
+    localStorage.removeItem('ict_user_uid');
+    localStorage.removeItem('ict_user_data');
 }
 
-// ===== LOAD EVENTS FROM FIREBASE =====
-async function loadEvents() {
-    if (!calendarEventsRef) return;
-    try {
-        const snapshot = await get(calendarEventsRef);
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            allEvents = Object.entries(data).map(([id, event]) => ({
-                id,
-                ...event
-            }));
-        } else {
-            allEvents = [];
-        }
-        // Also save to local storage as backup
-        localStorage.setItem('ict_calendar_events', JSON.stringify(allEvents));
-        renderEvents();
-        renderCalendar();
-    } catch (err) {
-        console.error('Error loading events:', err);
-        loadEventsLocal();
+// ===== SHOW DASHBOARD =====
+function showDashboard(userData) {
+    authScreen.classList.add('hidden');
+    dashScreen.classList.remove('hidden');
+    const name = userData?.fullName || userData?.name || 'Student';
+    const phone = userData?.phone || '-';
+    dashName.textContent = name;
+    dashNameBadge.textContent = name;
+    pFullName.textContent = name;
+    pPhone.textContent = phone;
+    profileNameDisplay.textContent = name;
+    profilePhoneDisplay.textContent = phone;
+    if (userData?.photo) {
+        const img = dashAvatar.querySelector('img');
+        if (img) img.src = userData.photo;
+        if (profileImgDisplay) profileImgDisplay.src = userData.photo;
     }
+    currentUserId = userData?.uid || 'local';
+    // Load events from Firebase
+    loadEvents();
+    // Load notifications
+    loadNotifications();
+    // Update task count
+    updateTaskCount();
 }
 
-// ===== LOAD EVENTS FROM LOCAL STORAGE (fallback) =====
-function loadEventsLocal() {
-    const stored = localStorage.getItem('ict_calendar_events');
-    if (stored) {
-        try {
-            allEvents = JSON.parse(stored);
-        } catch (e) {
-            allEvents = [];
-        }
-    } else {
-        allEvents = [];
-    }
-    renderEvents();
-    renderCalendar();
-}
-
-// ===== SAVE EVENT =====
-async function saveEvent(eventData, eventId = null) {
-    const user = auth.currentUser;
-    if (user && calendarEventsRef) {
-        try {
-            if (eventId) {
-                await update(ref(database, `calendar/${user.uid}/events/${eventId}`), eventData);
-            } else {
-                const newRef = push(calendarEventsRef);
-                await set(newRef, eventData);
-                eventId = newRef.key;
+// ===== NOTIFICATIONS =====
+function loadNotifications() {
+    const notifRef = ref(database, 'notifications');
+    onValue(notifRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            // Get latest message (assuming order by priority or timestamp)
+            const messages = Object.values(data);
+            const latest = messages[messages.length - 1];
+            if (latest && latest.text) {
+                document.getElementById('notificationText').textContent = latest.text;
             }
-            // Reload events
-            await loadEvents();
-            return eventId;
-        } catch (err) {
-            console.error('Error saving event:', err);
-            // Fallback to local
-            return saveEventLocal(eventData, eventId);
         }
-    } else {
-        return saveEventLocal(eventData, eventId);
-    }
+    });
 }
 
-// ===== SAVE EVENT LOCAL (fallback) =====
-function saveEventLocal(eventData, eventId = null) {
-    if (eventId) {
-        const index = allEvents.findIndex(e => e.id === eventId);
-        if (index !== -1) {
-            allEvents[index] = { ...allEvents[index], ...eventData };
-        }
-    } else {
-        eventId = 'local_' + Date.now();
-        allEvents.push({ id: eventId, ...eventData });
-    }
-    localStorage.setItem('ict_calendar_events', JSON.stringify(allEvents));
-    renderEvents();
-    renderCalendar();
-    return eventId;
-}
-
-// ===== DELETE EVENT =====
-async function deleteEvent(eventId) {
-    const user = auth.currentUser;
-    if (user && calendarEventsRef) {
-        try {
-            await remove(ref(database, `calendar/${user.uid}/events/${eventId}`));
-            await loadEvents();
-        } catch (err) {
-            console.error('Error deleting event:', err);
-            deleteEventLocal(eventId);
-        }
-    } else {
-        deleteEventLocal(eventId);
-    }
-}
-
-function deleteEventLocal(eventId) {
-    allEvents = allEvents.filter(e => e.id !== eventId);
-    localStorage.setItem('ict_calendar_events', JSON.stringify(allEvents));
-    renderEvents();
-    renderCalendar();
-}
-
-// ===== RENDER CALENDAR =====
-function renderCalendar() {
-    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
-    const today = new Date();
-
-    // Update header
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    calendarMonthYear.textContent = `${monthNames[currentMonth]} ${currentYear}`;
-
-    // Clear existing days (keep headers)
-    const headers = calendarGrid.querySelectorAll('div');
-    for (let i = 7; i < headers.length; i++) {
-        headers[i].remove();
-    }
-
-    // Build calendar days
-    const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
-    let dayCount = 0;
-
-    for (let i = 0; i < totalCells; i++) {
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'calendar-day';
-
-        let dayNumber;
-        let isOtherMonth = false;
-
-        if (i < firstDay) {
-            // Previous month days
-            dayNumber = daysInPrevMonth - firstDay + i + 1;
-            isOtherMonth = true;
-        } else if (i >= firstDay + daysInMonth) {
-            // Next month days
-            dayNumber = i - (firstDay + daysInMonth) + 1;
-            isOtherMonth = true;
-        } else {
-            dayNumber = i - firstDay + 1;
-        }
-
-        dayDiv.dataset.day = dayNumber;
-        dayDiv.dataset.month = isOtherMonth ? (i < firstDay ? currentMonth - 1 : currentMonth + 1) : currentMonth;
-        dayDiv.dataset.year = currentYear;
-
-        // Check if this is today
-        const isToday = !isOtherMonth && 
-            dayNumber === today.getDate() && 
-            currentMonth === today.getMonth() && 
-            currentYear === today.getFullYear();
-
-        if (isToday) {
-            dayDiv.classList.add('today');
-        }
-        if (isOtherMonth) {
-            dayDiv.classList.add('other-month');
-        }
-
-        // Check if selected
-        if (selectedDate && 
-            dayNumber === selectedDate.getDate() && 
-            currentMonth === selectedDate.getMonth() && 
-            currentYear === selectedDate.getFullYear()) {
-            dayDiv.classList.add('selected');
-        }
-
-        // Check if has events
-        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`;
-        const dayEvents = allEvents.filter(e => e.date === dateStr);
-
-        // Build day content
-        let content = `<span class="day-number">${dayNumber}</span>`;
-        if (dayEvents.length > 0) {
-            // Show indicators
-            const types = [...new Set(dayEvents.map(e => e.type))];
-            let indicators = '<div class="day-indicators">';
-            types.forEach(type => {
-                indicators += `<span class="mini-dot ${type}"></span>`;
+// ===== EVENTS =====
+function loadEvents() {
+    if (!currentUserId) return;
+    const eventsRef = ref(database, `events/${currentUserId}`);
+    onValue(eventsRef, (snapshot) => {
+        const data = snapshot.val();
+        events = [];
+        if (data) {
+            Object.keys(data).forEach(key => {
+                events.push({ id: key, ...data[key] });
             });
-            indicators += '</div>';
-            content += indicators;
         }
-        dayDiv.innerHTML = content;
-
-        // Click to select date
-        dayDiv.addEventListener('click', () => {
-            const dateObj = new Date(currentYear, parseInt(dayDiv.dataset.month), parseInt(dayDiv.dataset.day));
-            selectedDate = dateObj;
-            renderCalendar();
-            renderEvents();
-            // Open add event modal with this date
-            openAddEventForDate(dateObj);
-        });
-
-        calendarGrid.appendChild(dayDiv);
-    }
+        renderCalendar(currentMonth, currentYear);
+        renderEvents(events);
+        updateTaskCount();
+    });
 }
 
-// ===== RENDER EVENTS =====
-function renderEvents() {
-    const searchTerm = calendarSearch.value.toLowerCase().trim();
-    const filterType = calendarFilterType.value;
-    let filteredEvents = [...allEvents];
-
-    // Apply search
-    if (searchTerm) {
-        filteredEvents = filteredEvents.filter(e => 
-            (e.title && e.title.toLowerCase().includes(searchTerm)) ||
-            (e.description && e.description.toLowerCase().includes(searchTerm)) ||
-            (e.tags && e.tags.toLowerCase().includes(searchTerm)) ||
-            (e.date && e.date.includes(searchTerm))
-        );
-    }
-
-    // Apply type filter
-    if (filterType !== 'all') {
-        filteredEvents = filteredEvents.filter(e => e.type === filterType);
-    }
-
-    // Sort by date
-    filteredEvents.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-
-    // Update count
-    eventCount.textContent = `${filteredEvents.length} entries`;
-
-    if (filteredEvents.length === 0) {
-        eventsContainer.innerHTML = `
-            <div style="text-align:center;padding:2rem 0;color:#6b7280;">
-                <span style="font-size:2rem;display:block;margin-bottom:0.5rem;">📭</span>
-                <p>No events found. Click a date to add an event!</p>
-            </div>
-        `;
-        return;
-    }
+function renderCalendar(month, year) {
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    const todayDate = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
 
     let html = '';
-    filteredEvents.forEach(event => {
-        const typeLabels = {
-            class: '📚 Class',
-            study: '📖 Study',
-            task: '✅ Task',
-            exam: '📝 Exam',
-            other: '📌 Other'
-        };
-        const timeStr = event.start && event.end ? `${event.start} - ${event.end}` : event.start || 'All day';
-        const hoursStr = event.hours ? `${event.hours}h` : '';
-        const tagsStr = event.tags ? event.tags.split(',').map(t => t.trim()).filter(t => t).join(' · ') : '';
-
-        html += `
-            <div class="event-item" data-id="${event.id}" style="border-left-color: ${getTypeColor(event.type)};">
-                <div class="event-info">
-                    <div class="event-title">${event.title || 'Untitled'}</div>
-                    <div class="event-meta">
-                        <span class="type-badge ${event.type}">${typeLabels[event.type] || event.type}</span>
-                        <span>📅 ${event.date || 'No date'}</span>
-                        <span>⏰ ${timeStr}</span>
-                        ${hoursStr ? `<span>⏱️ ${hoursStr}</span>` : ''}
-                        ${tagsStr ? `<span>🏷️ ${tagsStr}</span>` : ''}
-                    </div>
-                    ${event.description ? `<div style="font-size:0.75rem;color:#9ca3af;margin-top:2px;">${event.description}</div>` : ''}
-                </div>
-                <div class="event-actions">
-                    <button class="edit-btn" data-id="${event.id}" title="Edit">✏️</button>
-                    <button class="delete-btn" data-id="${event.id}" title="Delete">🗑️</button>
-                </div>
-            </div>
-        `;
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(d => {
+        html += `<div class="day-header">${d}</div>`;
     });
 
-    eventsContainer.innerHTML = html;
-
-    // Add event listeners to edit/delete buttons
-    eventsContainer.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = btn.dataset.id;
-            openEditEvent(id);
-        });
-    });
-    eventsContainer.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = btn.dataset.id;
-            if (confirm('Delete this event?')) {
-                deleteEvent(id);
-            }
-        });
-    });
-
-    // Click on event to view/edit
-    eventsContainer.querySelectorAll('.event-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            if (e.target.closest('.event-actions')) return;
-            const id = item.dataset.id;
-            openEditEvent(id);
-        });
-    });
-}
-
-// ===== GET TYPE COLOR =====
-function getTypeColor(type) {
-    const colors = {
-        class: '#db3900',
-        study: '#4caf50',
-        task: '#ff9800',
-        exam: '#f44336',
-        other: '#9c27b0'
-    };
-    return colors[type] || '#db3900';
-}
-
-// ===== OPEN ADD EVENT FOR DATE =====
-function openAddEventForDate(date) {
-    editingEventId = null;
-    eventModalTitle.textContent = '📅 Add Event';
-    deleteEventBtn.style.display = 'none';
-    saveEventBtn.textContent = '💾 Save Event';
-    const dateStr = date ? 
-        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` :
-        new Date().toISOString().split('T')[0];
-    eventDate.value = dateStr;
-    eventType.value = 'class';
-    eventTitle.value = '';
-    eventDesc.value = '';
-    eventStart.value = '';
-    eventEnd.value = '';
-    eventHours.value = '';
-    eventTags.value = '';
-    openModal('eventModal');
-}
-
-// ===== OPEN EDIT EVENT =====
-function openEditEvent(eventId) {
-    const event = allEvents.find(e => e.id === eventId);
-    if (!event) return;
-    editingEventId = eventId;
-    eventModalTitle.textContent = '✏️ Edit Event';
-    deleteEventBtn.style.display = 'block';
-    saveEventBtn.textContent = '💾 Update Event';
-    eventDate.value = event.date || '';
-    eventType.value = event.type || 'class';
-    eventTitle.value = event.title || '';
-    eventDesc.value = event.description || '';
-    eventStart.value = event.start || '';
-    eventEnd.value = event.end || '';
-    eventHours.value = event.hours || '';
-    eventTags.value = event.tags || '';
-    openModal('eventModal');
-}
-
-// ===== SETUP CALENDAR LISTENERS =====
-function setupCalendarListeners() {
-    // Navigation
-    calendarPrev.addEventListener('click', () => {
-        currentMonth--;
-        if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-        renderCalendar();
-        renderEvents();
-    });
-    calendarNext.addEventListener('click', () => {
-        currentMonth++;
-        if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-        renderCalendar();
-        renderEvents();
-    });
-    todayBtn.addEventListener('click', () => {
-        const now = new Date();
-        currentMonth = now.getMonth();
-        currentYear = now.getFullYear();
-        selectedDate = now;
-        renderCalendar();
-        renderEvents();
-    });
-
-    // Add event
-    addEventBtn.addEventListener('click', () => {
-        openAddEventForDate(new Date());
-    });
-
-    // Save event
-    saveEventBtn.addEventListener('click', () => {
-        const eventData = {
-            date: eventDate.value,
-            type: eventType.value,
-            title: eventTitle.value.trim(),
-            description: eventDesc.value.trim(),
-            start: eventStart.value,
-            end: eventEnd.value,
-            hours: parseFloat(eventHours.value) || 0,
-            tags: eventTags.value.trim(),
-            updatedAt: Date.now()
-        };
-        if (!eventData.date || !eventData.title) {
-            alert('Please enter a date and title.');
-            return;
-        }
-        saveEvent(eventData, editingEventId);
-        closeModal('eventModal');
-    });
-
-    // Delete event
-    deleteEventBtn.addEventListener('click', () => {
-        if (editingEventId && confirm('Delete this event permanently?')) {
-            deleteEvent(editingEventId);
-            closeModal('eventModal');
-        }
-    });
-
-    // Search
-    calendarSearch.addEventListener('input', renderEvents);
-    calendarFilterType.addEventListener('change', renderEvents);
-    clearSearchBtn.addEventListener('click', () => {
-        calendarSearch.value = '';
-        calendarFilterType.value = 'all';
-        renderEvents();
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeModal('eventModal');
-        }
-    });
-
-    // Close modal when clicking outside
-    eventModal.addEventListener('click', (e) => {
-        if (e.target === eventModal) {
-            closeModal('eventModal');
-        }
-    });
-}
-
-// ===== AUTO-GENERATE STUDY SCHEDULE =====
-generateScheduleBtn.addEventListener('click', () => {
-    // Get all events
-    const events = allEvents;
-    if (events.length === 0) {
-        alert('No events found. Add some events first to generate a schedule.');
-        return;
+    // Empty cells for first week
+    for (let i = 0; i < firstDay; i++) {
+        html += `<div class="day-cell"></div>`;
     }
 
-    // Group by date
-    const grouped = {};
-    events.forEach(e => {
-        if (!grouped[e.date]) grouped[e.date] = [];
-        grouped[e.date].push(e);
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateObj = new Date(year, month, d);
+        const dateStr = dateObj.toISOString().split('T')[0];
+        const hasEvent = events.some(e => e.date === dateStr);
+        const isToday = (d === todayDate && month === todayMonth && year === todayYear);
+        let cls = 'day-cell';
+        if (hasEvent) cls += ' has-event';
+        if (isToday) cls += ' today';
+        html += `<div class="${cls}" data-date="${dateStr}" onclick="selectDate('${dateStr}')">${d}</div>`;
+    }
+    calendarGrid.innerHTML = html;
+}
+
+window.selectDate = function(dateStr) {
+    document.getElementById('eventDate').value = dateStr;
+};
+
+function renderEvents(eventList) {
+    const searchTerm = searchEvent.value.toLowerCase();
+    const filtered = eventList.filter(e => {
+        const title = e.title?.toLowerCase() || '';
+        const desc = e.desc?.toLowerCase() || '';
+        return title.includes(searchTerm) || desc.includes(searchTerm);
+    });
+    // Sort by date and time
+    filtered.sort((a, b) => {
+        if (a.date < b.date) return -1;
+        if (a.date > b.date) return 1;
+        if (a.time < b.time) return -1;
+        if (a.time > b.time) return 1;
+        return 0;
     });
 
-    // Sort dates
-    const sortedDates = Object.keys(grouped).sort();
-
-    // Generate schedule summary
-    let totalHours = 0;
-    let classCount = 0;
-    let studyCount = 0;
-    let taskCount = 0;
-    let examCount = 0;
-
-    events.forEach(e => {
-        totalHours += e.hours || 0;
-        if (e.type === 'class') classCount++;
-        else if (e.type === 'study') studyCount++;
-        else if (e.type === 'task') taskCount++;
-        else if (e.type === 'exam') examCount++;
-    });
-
-    // Build schedule HTML
-    let scheduleHTML = `
-        <div class="schedule-summary">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.8rem;">
-                <span style="font-weight:600;color:white;">📋 Generated Study Schedule</span>
-                <span style="color:#9ca3af;font-size:0.7rem;">${new Date().toLocaleString()}</span>
-            </div>
-            <div class="schedule-stats">
-                <div class="stat-item"><div class="stat-num">${totalHours}</div><div class="stat-label">Total Hours</div></div>
-                <div class="stat-item"><div class="stat-num">${classCount}</div><div class="stat-label">Classes</div></div>
-                <div class="stat-item"><div class="stat-num">${studyCount}</div><div class="stat-label">Study Sessions</div></div>
-                <div class="stat-item"><div class="stat-num">${taskCount}</div><div class="stat-label">Tasks</div></div>
-                <div class="stat-item"><div class="stat-num">${examCount}</div><div class="stat-label">Exams</div></div>
-                <div class="stat-item"><div class="stat-num">${events.length}</div><div class="stat-label">Total Events</div></div>
-            </div>
-            <div style="max-height:200px;overflow-y:auto;">
-    `;
-
-    sortedDates.forEach(date => {
-        const dayEvents = grouped[date];
-        const dateObj = new Date(date + 'T00:00:00');
-        const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        scheduleHTML += `<div style="font-weight:600;color:#db3900;padding:0.3rem 0;border-bottom:1px solid #1a1a1a;font-size:0.85rem;">📅 ${dateStr}</div>`;
-        dayEvents.forEach(e => {
-            const timeStr = e.start && e.end ? `${e.start} - ${e.end}` : e.start || 'All day';
-            const hoursStr = e.hours ? `(${e.hours}h)` : '';
-            const typeEmoji = { class: '📚', study: '📖', task: '✅', exam: '📝', other: '📌' };
-            scheduleHTML += `
-                <div class="schedule-item">
-                    <span class="sched-title">${typeEmoji[e.type] || '📌'} ${e.title || 'Untitled'}</span>
-                    <span class="sched-time">${timeStr} ${hoursStr}</span>
+    let html = '';
+    if (filtered.length === 0) {
+        html = '<p style="color:#9ca3af;font-size:0.9rem;">No events found.</p>';
+    } else {
+        filtered.forEach(e => {
+            html += `
+                <div class="event-item">
+                    <div class="event-info">
+                        <div class="title">${e.title || 'Untitled'}</div>
+                        <div class="desc">${e.desc || ''}</div>
+                        <div class="datetime">${e.date} ${e.time || ''}</div>
+                    </div>
+                    <button class="delete-event" data-id="${e.id}">✕</button>
                 </div>
             `;
         });
+    }
+    eventsContainer.innerHTML = html;
+
+    // Attach delete listeners
+    document.querySelectorAll('.delete-event').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            deleteEvent(id);
+        });
     });
+}
 
-    scheduleHTML += `
-            </div>
-            <div style="margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid #1a1a1a;display:flex;gap:0.8rem;flex-wrap:wrap;">
-                <button onclick="exportSchedule()" class="home-btn" style="padding:0.3rem 1rem;font-size:0.75rem;">📤 Export</button>
-                <button onclick="document.querySelector('.schedule-summary').innerHTML = document.querySelector('.schedule-summary').innerHTML" class="home-btn home-btn-outline" style="padding:0.3rem 1rem;font-size:0.75rem;">📋 Copy</button>
-            </div>
-        </div>
-    `;
-
-    // Show the schedule in a modal or replace content
-    const existingSchedule = document.querySelector('.schedule-summary');
-    if (existingSchedule) {
-        existingSchedule.outerHTML = scheduleHTML;
-    } else {
-        // Insert after the events list
-        const eventsList = document.getElementById('eventsList');
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = scheduleHTML;
-        eventsList.insertAdjacentElement('afterend', tempDiv.firstElementChild);
+async function deleteEvent(id) {
+    if (!currentUserId) return;
+    if (!confirm('Delete this event?')) return;
+    try {
+        await set(ref(database, `events/${currentUserId}/${id}`), null);
+        // events will refresh via onValue
+    } catch (err) {
+        alert('Error deleting event.');
+        console.error(err);
     }
-});
+}
 
-// ===== EXPORT SCHEDULE =====
-window.exportSchedule = function() {
-    const scheduleEl = document.querySelector('.schedule-summary');
-    if (!scheduleEl) return;
-    const content = scheduleEl.innerText;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `study_schedule_${new Date().toISOString().split('T')[0]}.txt`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-};
-
-// ===== OVERRIDE SHOW DASHBOARD TO INIT CALENDAR =====
-const originalShowDashboard = window.showDashboard || function() {};
-window.showDashboard = function(userData) {
-    originalShowDashboard(userData);
-    // Initialize calendar after dashboard is shown
-    setTimeout(() => {
-        if (!document.getElementById('section-calendar').classList.contains('hidden')) {
-            initCalendar();
-        }
-        // Also init when calendar section becomes visible
-        const calendarNav = document.querySelector('.nav-item[data-section="calendar"]');
-        if (calendarNav) {
-            calendarNav.addEventListener('click', () => {
-                setTimeout(initCalendar, 100);
-            });
-        }
-    }, 300);
-};
-
-// ===== INIT CALENDAR ON DEMAND =====
-// When calendar section is shown, init calendar
-document.addEventListener('click', (e) => {
-    const navItem = e.target.closest('.nav-item[data-section="calendar"]');
-    if (navItem) {
-        setTimeout(initCalendar, 100);
-    }
-});
-
-// ===== PREVENT DUPLICATE EVENT LISTENERS =====
-// Use a flag to prevent multiple inits
-let calendarInitialized = false;
-
-// Override initCalendar to prevent duplicates
-const originalInitCalendar = initCalendar;
-initCalendar = function() {
-    if (calendarInitialized) {
-        // Just refresh data
-        loadEvents();
-        renderCalendar();
-        renderEvents();
+async function addEvent(date, time, title, desc) {
+    if (!currentUserId) return;
+    if (!date || !title) {
+        alert('Please enter at least a date and title.');
         return;
     }
-    calendarInitialized = true;
-    originalInitCalendar();
-};
+    const newEvent = { date, time: time || '', title, desc: desc || '' };
+    try {
+        await push(ref(database, `events/${currentUserId}`), newEvent);
+        // Clear form
+        eventDate.value = '';
+        eventTime.value = '';
+        eventTitle.value = '';
+        eventDesc.value = '';
+        // events will refresh via onValue
+    } catch (err) {
+        alert('Error adding event.');
+        console.error(err);
+    }
+}
 
-console.log('📅 Calendar & Schedule system loaded!');
-console.log('📋 Features: Add events, search, filter, auto-generate schedule');
+function updateTaskCount() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayEvents = events.filter(e => e.date === today);
+    if (taskCount) taskCount.textContent = todayEvents.length;
+}
+
+// ===== AUTO-GENERATE SCHEDULE =====
+function generateSchedule() {
+    if (!currentUserId) return;
+    // Generate events for class days (Mon, Wed, Fri) for the next 4 weeks
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() - today.getDay() + 1); // Monday this week
+    const end = new Date(start);
+    end.setDate(start.getDate() + 28); // 4 weeks
+
+    let count = 0;
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const day = d.getDay();
+        if (day === 1 || day === 3 || day === 5) { // Mon, Wed, Fri
+            const dateStr = d.toISOString().split('T')[0];
+            // Check if event already exists for this date
+            const exists = events.some(e => e.date === dateStr);
+            if (!exists) {
+                const title = 'ICT Class';
+                const desc = 'Regular ICT class session';
+                const time = '18:30';
+                push(ref(database, `events/${currentUserId}`), { date: dateStr, time, title, desc });
+                count++;
+            }
+        }
+    }
+    alert(`Generated ${count} new class events for the next 4 weeks.`);
+}
+
+// ===== EVENT LISTENERS =====
+addEventBtn.addEventListener('click', () => {
+    addEvent(eventDate.value, eventTime.value, eventTitle.value, eventDesc.value);
+});
+
+searchEvent.addEventListener('input', () => {
+    renderEvents(events);
+});
+
+generateScheduleBtn.addEventListener('click', generateSchedule);
+
+// ===== LOGIN =====
+async function loginUser(phone, pass) {
+    if (!phone || !pass) { alert('Please enter phone and password.'); return; }
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<span class="loader"></span> Logging in...';
+    loginBtn.classList.add('btn-loading');
+    try {
+        const cred = await signInWithEmailAndPassword(auth, phone + '@ictfromabc.com', pass);
+        const user = cred.user;
+        const snapshot = await get(child(ref(database), `users/${user.uid}`));
+        const data = snapshot.val() || { fullName: 'Student', phone, batch: 'ICT AL 2026' };
+        data.uid = user.uid;
+        saveUserLocally(user.uid, data);
+        showDashboard(data);
+    } catch (err) {
+        alert('Invalid credentials. Please try again.');
+        console.error(err);
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '🔐 Login';
+        loginBtn.classList.remove('btn-loading');
+    }
+}
+
+// ===== SIGNUP =====
+async function signupUser(name, phone, pass) {
+    if (!name || !phone || !pass) { alert('Please fill all fields.'); return; }
+    try {
+        const cred = await createUserWithEmailAndPassword(auth, phone + '@ictfromabc.com', pass);
+        const user = cred.user;
+        const data = { fullName: name, phone, name, batch: 'ICT AL 2026' };
+        await set(ref(database, `users/${user.uid}`), data);
+        saveUserLocally(user.uid, data);
+        showDashboard(data);
+        closeModal('signupModal');
+    } catch (err) {
+        alert('Signup failed: ' + err.message);
+        console.error(err);
+    }
+}
+
+// ===== GOOGLE LOGIN =====
+async function googleLogin() {
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const snapshot = await get(child(ref(database), `users/${user.uid}`));
+        let data = snapshot.val();
+        if (!data) {
+            data = {
+                fullName: user.displayName || 'Student',
+                phone: user.phoneNumber || '',
+                email: user.email,
+                name: user.displayName || 'Student',
+                batch: 'ICT AL 2026',
+                photo: user.photoURL || 'Profile.png'
+            };
+            await set(ref(database, `users/${user.uid}`), data);
+        }
+        data.uid = user.uid;
+        if (user.photoURL) data.photo = user.photoURL;
+        saveUserLocally(user.uid, data);
+        showDashboard(data);
+    } catch (err) {
+        alert('Google login failed. Please try again.');
+        console.error(err);
+    }
+}
+
+// ===== OTP =====
+let otpCode = '',
+    otpVerified = false,
+    currentPhone = '',
+    otpTimerInterval = null;
+
+function generateOTP() { return Math.floor(100000 + Math.random() * 900000).toString(); }
+
+function startOtpTimer(seconds = 60) {
+    const timerEl = document.getElementById('otpTimer');
+    let remaining = seconds;
+    timerEl.textContent = `⏱️ Resend in ${remaining}s`;
+    clearInterval(otpTimerInterval);
+    otpTimerInterval = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+            clearInterval(otpTimerInterval);
+            timerEl.textContent = '✅ OTP sent! Check your phone.';
+            document.getElementById('sendOtpBtn').disabled = false;
+        } else {
+            timerEl.textContent = `⏱️ Resend in ${remaining}s`;
+        }
+    }, 1000);
+}
+
+document.getElementById('sendOtpBtn').addEventListener('click', () => {
+    const phone = document.getElementById('forgotPhone').value.trim();
+    if (!phone) { alert('Enter phone number.'); return; }
+    currentPhone = phone;
+    otpCode = generateOTP();
+    otpVerified = false;
+    console.log(`📱 OTP for ${phone}: ${otpCode}`);
+    document.getElementById('sendOtpBtn').disabled = true;
+    document.getElementById('otpTimer').textContent = '📨 OTP sent! Check console or SMS.';
+    document.getElementById('otpStatus').textContent = '';
+    document.getElementById('otpStatus').className = 'otp-status';
+    startOtpTimer(60);
+    alert(`OTP sent to ${phone} (Demo: ${otpCode})`);
+});
+
+document.getElementById('verifyOtpBtn').addEventListener('click', () => {
+    const entered = document.getElementById('otpInput').value.trim();
+    if (!entered) { alert('Enter OTP code.'); return; }
+    if (entered === otpCode) {
+        otpVerified = true;
+        document.getElementById('otpStatus').textContent = '✅ OTP verified successfully!';
+        document.getElementById('otpStatus').className = 'otp-verified';
+        document.getElementById('otpTimer').textContent = '';
+        alert('OTP verified! Set your new password.');
+    } else {
+        document.getElementById('otpStatus').textContent = '❌ Invalid OTP. Please try again.';
+        document.getElementById('otpStatus').className = 'otp-status';
+        document.getElementById('otpStatus').style.color = '#ff4444';
+    }
+});
+
+document.getElementById('resetPassBtn').addEventListener('click', async () => {
+    if (!otpVerified) { alert('Please verify OTP first.'); return; }
+    const newPass = document.getElementById('resetNewPass').value.trim();
+    if (!newPass || newPass.length < 6) { alert('Password must be at least 6 characters.'); return; }
+    try {
+        await sendPasswordResetEmail(auth, currentPhone + '@ictfromabc.com');
+        alert('Password reset email sent! Check your inbox.');
+        closeModal('forgotModal');
+        otpVerified = false;
+        document.getElementById('otpStatus').textContent = '';
+        document.getElementById('otpStatus').className = 'otp-status';
+        document.getElementById('otpTimer').textContent = '';
+        document.getElementById('otpInput').value = '';
+        document.getElementById('resetNewPass').value = '';
+        document.getElementById('sendOtpBtn').disabled = false;
+    } catch (err) {
+        const localData = getUserLocally();
+        if (localData.data && localData.data.phone === currentPhone) {
+            alert('Password updated successfully! (local mode)');
+            closeModal('forgotModal');
+        } else {
+            alert('Account not found. Please sign up first.');
+        }
+    }
+});
+
+// ===== CHANGE PASSWORD =====
+async function changePassword(newPass) {
+    if (!newPass) { alert('Enter new password.'); return; }
+    try {
+        if (auth.currentUser) {
+            await updatePassword(auth.currentUser, newPass);
+            alert('Password updated successfully!');
+            closeModal('changePassModal');
+        } else {
+            alert('Please login again to change password.');
+        }
+    } catch (err) {
+        alert('Error updating password. Please try again.');
+        console.error(err);
+    }
+}
+
+// ===== SAVE PROFILE =====
+async function saveProfile(data) {
+    const userData = getUserLocally();
+    if (!userData.uid) { alert('Please login first.'); return; }
+    try {
+        if (userData.uid !== 'local') {
+            await update(ref(database, `users/${userData.uid}`), data);
+        }
+        const merged = { ...userData.data, ...data };
+        saveUserLocally(userData.uid, merged);
+        showDashboard(merged);
+        closeModal('profileModal');
+        alert('Profile updated successfully!');
+    } catch (err) {
+        alert('Error saving profile.');
+        console.error(err);
+    }
+}
+
+// ===== AUTH STATE =====
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        const snapshot = await get(child(ref(database), `users/${user.uid}`));
+        const data = snapshot.val() || { fullName: 'Student', phone: '', batch: 'ICT AL 2026' };
+        data.uid = user.uid;
+        if (user.photoURL) data.photo = user.photoURL;
+        saveUserLocally(user.uid, data);
+        showDashboard(data);
+    } else {
+        const local = getUserLocally();
+        if (local.data) {
+            showDashboard(local.data);
+        } else {
+            authScreen.classList.remove('hidden');
+            dashScreen.classList.add('hidden');
+        }
+    }
+});
+
+// ===== EVENT BINDINGS =====
+loginBtn.addEventListener('click', () => loginUser(loginPhone.value.trim(), loginPass.value.trim()));
+loginPass.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
+googleBtn.addEventListener('click', googleLogin);
+
+document.getElementById('signupLink').addEventListener('click', (e) => { e.preventDefault(); openModal('signupModal'); });
+document.getElementById('forgotLink').addEventListener('click', (e) => { e.preventDefault(); openModal('forgotModal'); });
+
+document.getElementById('signupBtn').addEventListener('click', () => {
+    const name = document.getElementById('signupName').value.trim();
+    const phone = document.getElementById('signupPhone').value.trim();
+    const pass = document.getElementById('signupPass').value.trim();
+    signupUser(name, phone, pass);
+});
+
+document.getElementById('changePassBtn').addEventListener('click', () => {
+    changePassword(document.getElementById('newPass').value.trim());
+});
+
+document.getElementById('editProfileBtn').addEventListener('click', () => {
+    const data = getUserLocally().data || {};
+    document.getElementById('editFullName').value = data.fullName || data.name || '';
+    document.getElementById('editAddress').value = data.address || '';
+    document.getElementById('editPhone').value = data.phone || '';
+    document.getElementById('editWhatsApp').value = data.whatsapp || '';
+    document.getElementById('editSubject').value = data.subject || '';
+    document.getElementById('editSchool').value = data.school || '';
+    document.getElementById('editBirthday').value = data.birthday || '';
+    document.getElementById('editNic').value = data.nic || '';
+    document.getElementById('editInstitute').value = data.institute || '';
+    document.getElementById('editPhoto').value = data.photo || 'Profile.png';
+    openModal('profileModal');
+});
+
+document.getElementById('saveProfileBtn').addEventListener('click', () => {
+    const data = {
+        fullName: document.getElementById('editFullName').value.trim(),
+        address: document.getElementById('editAddress').value.trim(),
+        phone: document.getElementById('editPhone').value.trim(),
+        whatsapp: document.getElementById('editWhatsApp').value.trim(),
+        subject: document.getElementById('editSubject').value.trim(),
+        school: document.getElementById('editSchool').value.trim(),
+        birthday: document.getElementById('editBirthday').value.trim(),
+        nic: document.getElementById('editNic').value.trim(),
+        institute: document.getElementById('editInstitute').value.trim(),
+        photo: document.getElementById('editPhoto').value.trim() || 'Profile.png'
+    };
+    saveProfile(data);
+});
+
+// ===== SIDEBAR NAVIGATION =====
+document.querySelectorAll('.sidebar .nav-item[data-section]').forEach(item => {
+    item.addEventListener('click', function() {
+        document.querySelectorAll('.sidebar .nav-item').forEach(el => el.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.section-content').forEach(el => el.classList.add('hidden'));
+        const target = document.getElementById('section-' + this.dataset.section);
+        if (target) target.classList.remove('hidden');
+    });
+});
+
+// ===== LOGOUT =====
+document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+    e.preventDefault();
+    try { if (auth.currentUser) await signOut(auth); } catch (e) {}
+    clearUserLocally();
+    dashScreen.classList.add('hidden');
+    authScreen.classList.remove('hidden');
+});
+
+// ===== MODAL HELPERS =====
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+window.openModal = openModal;
+window.closeModal = closeModal;
+document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); }));
+
+// ===== CHATBOT =====
+const chatToggle = document.getElementById('chatToggle');
+const chatWindow = document.getElementById('chatWindow');
+const chatClose = document.getElementById('chatClose');
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
+const chatMessages = document.getElementById('chatMessages');
+
+chatToggle.addEventListener('click', () => chatWindow.classList.toggle('open'));
+chatClose.addEventListener('click', () => chatWindow.classList.remove('open'));
+
+function addMessage(text, type, sender = '') {
+    const div = document.createElement('div');
+    div.className = `chat-msg ${type}`;
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (sender) {
+        div.innerHTML = `<div class="sender">${sender}</div>${text}<div class="time">${time}</div>`;
+    } else {
+        div.innerHTML = `${text}<div class="time">${time}</div>`;
+    }
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function getBotReply(input) {
+    const lower = input.toLowerCase();
+    if (lower.includes('class') || lower.includes('day') || lower.includes('schedule'))
+        return '📅 Class days: Monday, Wednesday, Friday at 6:30 PM.';
+    if (lower.includes('past paper') || lower.includes('paper'))
+        return '📄 Past Papers: https://ictfromabc.com/public-dashboard/papers/al';
+    if (lower.includes('fee') || lower.includes('price') || lower.includes('cost'))
+        return '💰 Course fees: LKR 15,000 per year. Contact 071 455 5513.';
+    if (lower.includes('contact') || lower.includes('phone'))
+        return '📞 Phone: 071 455 5513 | Email: info@ictfromabc.com';
+    if (lower.includes('profile') || lower.includes('update'))
+        return '👤 Update your profile from the Profile section.';
+    if (lower.includes('otp') || lower.includes('password') || lower.includes('reset'))
+        return '🔑 Use "Forgot Password" to reset with OTP.';
+    if (lower.includes('institute') || lower.includes('school') || lower.includes('academy'))
+        return '🏫 We partner with Sakya Academy, Yahansa, Nanik, Sipwin, and IMS Kandy. Check the Institutes section!';
+    if (lower.includes('calendar') || lower.includes('event') || lower.includes('task'))
+        return '📅 Use the Calendar section to add events, tasks, and class dates. You can also auto-generate a study schedule.';
+    return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar, and profile updates.';
+}
+
+chatSend.addEventListener('click', () => {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    addMessage(text, 'user', '👤 You');
+    chatInput.value = '';
+    setTimeout(() => {
+        const reply = getBotReply(text);
+        addMessage(reply, 'bot', '🤖 Assistant');
+    }, 500);
+});
+chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') chatSend.click(); });
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('quick-reply')) {
+        const msg = e.target.dataset.msg;
+        if (msg) { chatInput.value = msg; chatSend.click(); }
+    }
+});
+
+console.log('🔥 Firebase connected!');
+console.log('👤 Profile image: Profile.png');
+console.log('🏫 Institutes loaded: Sakya, Yahansa, Nanik, Sipwin, IMS Kandy');
+console.log('📅 Calendar and task management active.');
