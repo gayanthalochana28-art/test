@@ -9,15 +9,16 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, se
 from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getDatabase, ref, set, update, get, child, push, onValue, query, orderByChild } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
 
-// ===== FIREBASE CONFIG =====
+// ===== FIREBASE CONFIG (EDITABLE) =====
+// Replace these values with your own Firebase project settings.
 const firebaseConfig = {
-    apiKey: "AIzaSyCcSHVnPeGa73lSh-vZNWJDod-C11lAciI",
-    authDomain: "ict-from-abc.firebaseapp.com",
-    projectId: "ict-from-abc",
-    storageBucket: "ict-from-abc.firebasestorage.app",
-    messagingSenderId: "70545428741",
-    appId: "1:70545428741:web:2f77d3511d283116d6a76c",
-    measurementId: "G-XYXH34MX7K"
+    apiKey: "AIzaSyCcSHVnPeGa73lSh-vZNWJDod-C11lAciI",   // <- Your API Key
+    authDomain: "ict-from-abc.firebaseapp.com",            // <- Your Auth Domain
+    projectId: "ict-from-abc",                             // <- Your Project ID
+    storageBucket: "ict-from-abc.firebasestorage.app",     // <- Your Storage Bucket
+    messagingSenderId: "70545428741",                      // <- Your Sender ID
+    appId: "1:70545428741:web:2f77d3511d283116d6a76c",     // <- Your App ID
+    measurementId: "G-XYXH34MX7K"                          // <- Your Measurement ID (optional)
 };
 
 // ===== INIT FIREBASE =====
@@ -55,6 +56,12 @@ const addEventBtn = document.getElementById('addEventBtn');
 const eventsContainer = document.getElementById('eventsContainer');
 const searchEvent = document.getElementById('searchEvent');
 const generateScheduleBtn = document.getElementById('generateScheduleBtn');
+
+// Notification refs
+const notificationText = document.getElementById('notificationText');
+const editNotifBtn = document.getElementById('editNotifBtn');
+const notifInput = document.getElementById('notifInput');
+const saveNotifBtn = document.getElementById('saveNotifBtn');
 
 let currentUserId = null;
 let events = [];
@@ -108,12 +115,15 @@ function loadNotifications() {
     onValue(notifRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-            // Get latest message (assuming order by priority or timestamp)
+            // Get the latest message (assuming node has a timestamp or we just use the last one)
             const messages = Object.values(data);
             const latest = messages[messages.length - 1];
             if (latest && latest.text) {
-                document.getElementById('notificationText').textContent = latest.text;
+                notificationText.textContent = latest.text;
             }
+        } else {
+            // If no notification exists, set a default
+            notificationText.textContent = 'Welcome to ictfromabc! Stay tuned for updates.';
         }
     });
 }
@@ -283,6 +293,29 @@ function generateSchedule() {
     }
     alert(`Generated ${count} new class events for the next 4 weeks.`);
 }
+
+// ===== NOTIFICATION EDITOR =====
+editNotifBtn.addEventListener('click', () => {
+    // Pre-fill modal with current message
+    notifInput.value = notificationText.textContent;
+    openModal('editNotifModal');
+});
+
+saveNotifBtn.addEventListener('click', async () => {
+    const newMsg = notifInput.value.trim();
+    if (!newMsg) { alert('Please enter a message.'); return; }
+    try {
+        // Save to Firebase under 'notifications' with a unique key
+        const notifRef = ref(database, 'notifications');
+        await push(notifRef, { text: newMsg, timestamp: Date.now() });
+        // The realtime listener will update the notification bar automatically
+        closeModal('editNotifModal');
+        alert('Notification updated successfully!');
+    } catch (err) {
+        alert('Error updating notification.');
+        console.error(err);
+    }
+});
 
 // ===== EVENT LISTENERS =====
 addEventBtn.addEventListener('click', () => {
@@ -621,7 +654,9 @@ function getBotReply(input) {
         return '🏫 We partner with Sakya Academy, Yahansa, Nanik, Sipwin, and IMS Kandy. Check the Institutes section!';
     if (lower.includes('calendar') || lower.includes('event') || lower.includes('task'))
         return '📅 Use the Calendar section to add events, tasks, and class dates. You can also auto-generate a study schedule.';
-    return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar, and profile updates.';
+    if (lower.includes('notification') || lower.includes('message'))
+        return '🔔 You can edit the notification bar message by clicking the "Edit" button on the notification bar.';
+    return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar, notifications, and profile updates.';
 }
 
 chatSend.addEventListener('click', () => {
@@ -642,7 +677,8 @@ document.addEventListener('click', (e) => {
     }
 });
 
-console.log('🔥 Firebase connected!');
+console.log('🔥 Firebase connected with your custom configuration.');
 console.log('👤 Profile image: Profile.png');
 console.log('🏫 Institutes loaded: Sakya, Yahansa, Nanik, Sipwin, IMS Kandy');
 console.log('📅 Calendar and task management active.');
+console.log('🔔 Notification bar can be edited via the "Edit" button.');
