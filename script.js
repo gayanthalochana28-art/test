@@ -1,5 +1,5 @@
 // ============================================================
-// FILE: script.js
+// FILE: script.js (COMPLETE - WITH PERMISSION ERROR FIX)
 // ============================================================
 
 // ============================================================
@@ -470,7 +470,7 @@ document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('c
         this.classList.remove('active'); }));
 
 // ============================================================
-// CALENDAR SYSTEM
+// CALENDAR SYSTEM - CORE FUNCTIONS
 // ============================================================
 
 function loadEvents(uid) {
@@ -483,26 +483,70 @@ function loadEvents(uid) {
             renderCalendar();
             renderEventsForDate(selectedDate || currentDate);
         }
+    }, (error) => {
+        if (error.message.includes('PERMISSION_DENIED')) {
+            alert('❌ Permission denied to read events. Please check Firebase security rules.\n\nMake sure you have rules like:\n{\n  "rules": {\n    "events": {\n      "$uid": {\n        ".read": "$uid === auth.uid",\n        ".write": "$uid === auth.uid"\n      }\n    }\n  }\n}');
+        }
+        console.error('Load events error:', error);
     });
 }
 
+// ============================================================
+// SAVE EVENT - IMPROVED ERROR HANDLING
+// ============================================================
 async function saveEvent(uid, eventData) {
     const eventsRef = ref(database, `events/${uid}`);
     const newEventRef = push(eventsRef);
-    await set(newEventRef, { ...eventData, createdAt: new Date().toISOString() });
-    return newEventRef.key;
+    try {
+        await set(newEventRef, { ...eventData, createdAt: new Date().toISOString() });
+        return newEventRef.key;
+    } catch (err) {
+        if (err.message && err.message.includes('PERMISSION_DENIED')) {
+            alert('❌ Permission denied to save event.\n\nPlease update your Firebase Realtime Database security rules:\n\n{\n  "rules": {\n    "events": {\n      "$uid": {\n        ".read": "$uid === auth.uid",\n        ".write": "$uid === auth.uid"\n      }\n    }\n  }\n}\n\nTo fix:\n1. Go to Firebase Console → Realtime Database → Rules\n2. Paste the rules above\n3. Click Publish');
+        } else {
+            alert('Error saving event: ' + err.message);
+        }
+        throw err;
+    }
 }
 
+// ============================================================
+// UPDATE EVENT - IMPROVED ERROR HANDLING
+// ============================================================
 async function updateEvent(uid, eventKey, eventData) {
     const eventRef = ref(database, `events/${uid}/${eventKey}`);
-    await update(eventRef, eventData);
+    try {
+        await update(eventRef, eventData);
+    } catch (err) {
+        if (err.message && err.message.includes('PERMISSION_DENIED')) {
+            alert('❌ Permission denied to update event. Please check your Firebase security rules.');
+        } else {
+            alert('Error updating event: ' + err.message);
+        }
+        throw err;
+    }
 }
 
+// ============================================================
+// DELETE EVENT - IMPROVED ERROR HANDLING
+// ============================================================
 async function deleteEvent(uid, eventKey) {
     const eventRef = ref(database, `events/${uid}/${eventKey}`);
-    await remove(eventRef);
+    try {
+        await remove(eventRef);
+    } catch (err) {
+        if (err.message && err.message.includes('PERMISSION_DENIED')) {
+            alert('❌ Permission denied to delete event. Please check your Firebase security rules.');
+        } else {
+            alert('Error deleting event: ' + err.message);
+        }
+        throw err;
+    }
 }
 
+// ============================================================
+// CALENDAR HELPER FUNCTIONS
+// ============================================================
 function getEventsForDate(date) {
     const dateStr = date.toISOString().split('T')[0];
     const results = [];
@@ -528,6 +572,9 @@ function getAllEvents() {
     return results;
 }
 
+// ============================================================
+// RENDER CALENDAR
+// ============================================================
 function renderCalendar() {
     const firstDay = new Date(currentYear, currentMonth, 1).getDay();
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -608,6 +655,9 @@ function renderCalendar() {
     }
 }
 
+// ============================================================
+// RENDER EVENTS FOR DATE
+// ============================================================
 function renderEventsForDate(date) {
     const events = getEventsForDate(date);
     const dateStr = date.toISOString().split('T')[0];
@@ -670,8 +720,13 @@ function renderEventsForDate(date) {
             const userData = getUserLocally();
             if (!userData.uid) return;
             if (confirm('Delete this event?')) {
-                await deleteEvent(userData.uid, key);
-                loadEvents(userData.uid);
+                try {
+                    await deleteEvent(userData.uid, key);
+                    loadEvents(userData.uid);
+                } catch (err) {
+                    // Error already handled in deleteEvent
+                    console.error(err);
+                }
             }
         });
     });
@@ -709,6 +764,9 @@ document.getElementById('todayBtn').addEventListener('click', () => {
     renderCalendar();
 });
 
+// ============================================================
+// SAVE EVENT BUTTON - IMPROVED ERROR HANDLING
+// ============================================================
 document.getElementById('saveEventBtn').addEventListener('click', async () => {
     const userData = getUserLocally();
     if (!userData.uid) { alert('Please login first.'); return; }
@@ -723,6 +781,12 @@ document.getElementById('saveEventBtn').addEventListener('click', async () => {
     if (!title) { alert('Please enter a title.'); return; }
 
     const eventData = { date, title, description, time, type };
+
+    // Disable button to prevent double-click
+    const saveBtn = document.getElementById('saveEventBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = '⏳ Saving...';
+    saveBtn.classList.add('btn-loading');
 
     try {
         if (editingEventKey) {
@@ -739,22 +803,34 @@ document.getElementById('saveEventBtn').addEventListener('click', async () => {
         alert(editingEventKey ? 'Event updated!' : 'Event saved!');
         editingEventKey = null;
     } catch (err) {
-        alert('Error saving event: ' + err.message);
+        // Error already handled in saveEvent/updateEvent
         console.error(err);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = editingEventKey ? '💾 Update Event' : '💾 Save Event';
+        saveBtn.classList.remove('btn-loading');
     }
 });
 
+// ============================================================
+// DELETE EVENT BUTTON (from modal)
+// ============================================================
 document.getElementById('deleteEventBtn').addEventListener('click', async () => {
     if (!editingEventKey) return;
     const userData = getUserLocally();
     if (!userData.uid) return;
     if (confirm('Delete this event?')) {
-        await deleteEvent(userData.uid, editingEventKey);
-        closeModal('eventModal');
-        loadEvents(userData.uid);
-        renderCalendar();
-        if (selectedDate) renderEventsForDate(selectedDate);
-        editingEventKey = null;
+        try {
+            await deleteEvent(userData.uid, editingEventKey);
+            closeModal('eventModal');
+            loadEvents(userData.uid);
+            renderCalendar();
+            if (selectedDate) renderEventsForDate(selectedDate);
+            editingEventKey = null;
+        } catch (err) {
+            // Error already handled in deleteEvent
+            console.error(err);
+        }
     }
 });
 
@@ -855,6 +931,8 @@ function getBotReply(input) {
         return '🏫 We partner with Sakya Academy, Yahansa, Nanik, Sipwin, and IMS Kandy. Check the Institutes section!';
     if (lower.includes('calendar') || lower.includes('event') || lower.includes('task'))
         return '📅 Use the Calendar section to add work hours, tasks, and class dates. You can search and manage all your events!';
+    if (lower.includes('permission') || lower.includes('error') || lower.includes('denied'))
+        return '🔐 If you see a permission error, check your Firebase security rules. They should allow authenticated users to read/write their own data under events/{uid}.';
     return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar events, and profile updates.';
 }
 
@@ -878,9 +956,45 @@ document.addEventListener('click', (e) => {
 });
 
 // ============================================================
+// HANDLE PERMISSION DENIED - SHOW HELPFUL MESSAGE
+// ============================================================
+// This function is called from the error handlers above
+function showPermissionHelp() {
+    alert(`
+🔐 Firebase Permission Denied
+
+To fix this, update your Realtime Database security rules:
+
+1. Go to Firebase Console → Realtime Database → Rules
+2. Replace with:
+
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
+      }
+    },
+    "events": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
+      }
+    }
+  }
+}
+
+3. Click "Publish"
+4. Try again!
+    `);
+}
+
+// ============================================================
 // INIT
 // ============================================================
 console.log('🔥 Firebase connected!');
-console.log('📊 Google Sheets notification system ready with your CSV URL.');
+console.log('📊 Google Sheets notification system ready.');
 console.log('📅 Calendar system ready with Firebase storage.');
 console.log('🔍 Search events by title, description, date, or type.');
+console.log('📌 If you see "PERMISSION_DENIED", check Firebase security rules.');
