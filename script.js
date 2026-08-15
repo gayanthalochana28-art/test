@@ -2,14 +2,18 @@
 // FILE: script.js
 // ============================================================
 
-// ===== FIREBASE IMPORTS =====
+// ============================================================
+// FIREBASE IMPORTS
+// ============================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithPopup, GoogleAuthProvider, updatePassword, onAuthStateChanged, signOut }
 from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { getDatabase, ref, set, update, get, child, push, onValue, query, orderByChild } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+import { getDatabase, ref, set, update, get, child, push, remove, onValue } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
 
-// ===== FIREBASE CONFIG =====
+// ============================================================
+// FIREBASE CONFIG
+// ============================================================
 const firebaseConfig = {
     apiKey: "AIzaSyCcSHVnPeGa73lSh-vZNWJDod-C11lAciI",
     authDomain: "ict-from-abc.firebaseapp.com",
@@ -20,18 +24,24 @@ const firebaseConfig = {
     measurementId: "G-XYXH34MX7K"
 };
 
-// ===== GOOGLE SHEETS API URL =====
-// 🔥 REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
-const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbz-MW7cAd8ga0ztz5YCvK3hj20rEJoR4uWUBRTlGRs3PC2yxl9Szv9CS-M5scWC4A7I/exec';
-
-// ===== INIT FIREBASE =====
+// ============================================================
+// INIT FIREBASE
+// ============================================================
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const database = getDatabase(app);
 const provider = new GoogleAuthProvider();
 
-// ===== DOM REFS =====
+// ============================================================
+// GOOGLE SHEETS NOTIFICATION (CONFIGURED WITH YOUR URL)
+// ============================================================
+const GOOGLE_SHEETS_URL =
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLDVD0TZD9vBDVClfGmQYxXGl3wPopuYdzlP0RQvjXqkmVW305TYaHFcUse5EyJoSmRM9h5OkDmRYb/pub?gid=0&single=true&output=csv';
+
+// ============================================================
+// DOM REFS
+// ============================================================
 const authScreen = document.getElementById('authScreen');
 const dashScreen = document.getElementById('dashboardScreen');
 const loginPhone = document.getElementById('loginPhoneInput');
@@ -47,100 +57,96 @@ const pPhone = document.getElementById('pPhone');
 const profileNameDisplay = document.getElementById('profileNameDisplay');
 const profilePhoneDisplay = document.getElementById('profilePhoneDisplay');
 const profileImgDisplay = document.getElementById('profileImgDisplay');
-const taskCount = document.getElementById('taskCount');
 
-// Calendar refs
+// Notification Bar
+const notifBar = document.getElementById('notificationBar');
+const notifMarquee = document.getElementById('notifMarquee');
+
+// Calendar
+let currentDate = new Date();
+let currentMonth = currentDate.getMonth();
+let currentYear = currentDate.getFullYear();
+let selectedDate = null;
+let eventsCache = {};
+let editingEventKey = null;
+
 const calendarGrid = document.getElementById('calendarGrid');
-const eventDate = document.getElementById('eventDate');
-const eventTime = document.getElementById('eventTime');
-const eventTitle = document.getElementById('eventTitle');
-const eventDesc = document.getElementById('eventDesc');
-const addEventBtn = document.getElementById('addEventBtn');
-const eventsContainer = document.getElementById('eventsContainer');
-const searchEvent = document.getElementById('searchEvent');
-const generateScheduleBtn = document.getElementById('generateScheduleBtn');
+const calendarMonthYear = document.getElementById('calendarMonthYear');
+const eventList = document.getElementById('eventList');
+const eventSearchInput = document.getElementById('eventSearchInput');
 
-// Notification refs
-const notificationText = document.getElementById('notificationText');
-const editNotifBtn = document.getElementById('editNotifBtn');
-const notifInput = document.getElementById('notifInput');
-const notifSender = document.getElementById('notifSender');
-const saveNotifBtn = document.getElementById('saveNotifBtn');
-const sheetsStatus = document.getElementById('sheetsStatus');
+// ============================================================
+// GOOGLE SHEETS NOTIFICATION FETCH
+// ============================================================
+async function fetchGoogleSheetsNotifications() {
+    try {
+        const response = await fetch(GOOGLE_SHEETS_URL);
+        if (!response.ok) throw new Error('Failed to fetch');
+        const csvText = await response.text();
+        const lines = csvText.split('\n').filter(line => line.trim());
+        if (lines.length < 2) {
+            notifBar.style.display = 'none';
+            return;
+        }
+        const messages = [];
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+            if (cols.length >= 3) {
+                const message = cols[1] || '';
+                const active = cols[2]?.toUpperCase() === 'TRUE' ||
+                    cols[2]?.toUpperCase() === 'YES' ||
+                    cols[2]?.toUpperCase() === '1';
+                if (active && message) {
+                    messages.push(message);
+                }
+            }
+        }
+        if (messages.length === 0) {
+            notifBar.style.display = 'none';
+            return;
+        }
+        let html = '';
+        messages.forEach(msg => {
+            html += `<span>📢 ${msg}</span>`;
+        });
+        notifMarquee.innerHTML = html;
+        notifBar.style.display = 'block';
+        document.body.classList.add('with-notif');
+    } catch (err) {
+        console.warn('Google Sheets notification error:', err);
+        notifMarquee.innerHTML = '<span>📢 Stay updated with ictfromabc announcements!</span>';
+        notifBar.style.display = 'block';
+        document.body.classList.add('with-notif');
+    }
+}
 
-let currentUserId = null;
-let events = [];
-let currentMonth = new Date().getMonth();
-let currentYear = new Date().getFullYear();
+document.getElementById('closeNotifBtn').addEventListener('click', () => {
+    notifBar.style.display = 'none';
+    document.body.classList.remove('with-notif');
+});
 
-// ===== LOCAL STORAGE =====
+// ============================================================
+// LOCAL STORAGE HELPERS
+// ============================================================
 function saveUserLocally(uid, data) {
     localStorage.setItem('ict_user_uid', uid);
     localStorage.setItem('ict_user_data', JSON.stringify(data));
 }
+
 function getUserLocally() {
     const uid = localStorage.getItem('ict_user_uid');
     const data = localStorage.getItem('ict_user_data');
     return { uid, data: data ? JSON.parse(data) : null };
 }
+
 function clearUserLocally() {
     localStorage.removeItem('ict_user_uid');
     localStorage.removeItem('ict_user_data');
 }
 
-// ===== GOOGLE SHEETS API HELPERS =====
-async function sheetsFetch(action, data = {}) {
-    try {
-        const response = await fetch(SHEETS_API_URL, {
-            method: 'POST',
-            mode: 'cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ action, ...data })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        return result;
-    } catch (error) {
-        console.error('Google Sheets API error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-async function sheetsGet(action, params = {}) {
-    try {
-        const url = new URL(SHEETS_API_URL);
-        url.searchParams.append('action', action);
-        Object.keys(params).forEach(key => {
-            url.searchParams.append(key, params[key]);
-        });
-        
-        const response = await fetch(url.toString(), {
-            method: 'GET',
-            mode: 'cors',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        return result;
-    } catch (error) {
-        console.error('Google Sheets API error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-// ===== SHOW DASHBOARD =====
+// ============================================================
+// SHOW DASHBOARD
+// ============================================================
 function showDashboard(userData) {
     authScreen.classList.add('hidden');
     dashScreen.classList.remove('hidden');
@@ -157,367 +163,15 @@ function showDashboard(userData) {
         if (img) img.src = userData.photo;
         if (profileImgDisplay) profileImgDisplay.src = userData.photo;
     }
-    currentUserId = userData?.uid || 'local';
-    
-    // Load events from Google Sheets & Firebase
-    loadEventsFromSheets();
-    // Load notifications from Google Sheets
-    loadNotificationsFromSheets();
-    // Also load from Firebase as backup
-    loadEventsFromFirebase();
-    loadNotificationsFromFirebase();
-    // Update task count
-    updateTaskCount();
+    if (userData?.uid) {
+        loadEvents(userData.uid);
+    }
+    fetchGoogleSheetsNotifications();
 }
 
-// ===== NOTIFICATIONS - Google Sheets =====
-async function loadNotificationsFromSheets() {
-    try {
-        const result = await sheetsGet('getNotifications');
-        if (result.success && result.notifications && result.notifications.length > 0) {
-            const latest = result.notifications[0];
-            if (latest && latest.text) {
-                notificationText.textContent = latest.text;
-                if (sheetsStatus) {
-                    sheetsStatus.textContent = '● Connected';
-                    sheetsStatus.style.color = '#4caf50';
-                }
-                return;
-            }
-        }
-        // Fallback to default if no data
-        notificationText.textContent = 'Welcome to ictfromabc! Stay tuned for updates.';
-    } catch (err) {
-        console.warn('Sheets notifications not available, using fallback:', err);
-        if (sheetsStatus) {
-            sheetsStatus.textContent = '⚠️ Using Firebase';
-            sheetsStatus.style.color = '#ffaa00';
-        }
-    }
-}
-
-async function saveNotificationToSheets(text, sender) {
-    try {
-        const result = await sheetsFetch('saveNotification', { text, sender });
-        if (result.success) {
-            // Reload notifications
-            await loadNotificationsFromSheets();
-            return true;
-        }
-        return false;
-    } catch (err) {
-        console.error('Error saving to Sheets:', err);
-        return false;
-    }
-}
-
-// ===== NOTIFICATIONS - Firebase (Backup) =====
-function loadNotificationsFromFirebase() {
-    const notifRef = ref(database, 'notifications');
-    onValue(notifRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            const messages = Object.values(data);
-            const latest = messages[messages.length - 1];
-            if (latest && latest.text && notificationText) {
-                // Only update if Sheets didn't load first (or as backup)
-                const currentText = notificationText.textContent;
-                if (currentText === 'Welcome to ictfromabc! Stay tuned for updates.' || currentText === '') {
-                    notificationText.textContent = latest.text;
-                }
-            }
-        }
-    });
-}
-
-async function saveNotificationToFirebase(text, sender) {
-    try {
-        const notifRef = ref(database, 'notifications');
-        await push(notifRef, { text, sender, timestamp: Date.now() });
-        return true;
-    } catch (err) {
-        console.error('Error saving to Firebase:', err);
-        return false;
-    }
-}
-
-// ===== EVENTS - Google Sheets =====
-async function loadEventsFromSheets() {
-    try {
-        const result = await sheetsGet('getEvents', { userId: currentUserId || '' });
-        if (result.success && result.events) {
-            events = result.events;
-            renderCalendar(currentMonth, currentYear);
-            renderEvents(events);
-            updateTaskCount();
-            return;
-        }
-    } catch (err) {
-        console.warn('Sheets events not available:', err);
-    }
-    // If Sheets fails, try Firebase
-    loadEventsFromFirebase();
-}
-
-async function saveEventToSheets(date, time, title, desc, userId) {
-    try {
-        const result = await sheetsFetch('saveEvent', { date, time, title, desc, userId });
-        if (result.success) {
-            await loadEventsFromSheets();
-            return true;
-        }
-        return false;
-    } catch (err) {
-        console.error('Error saving event to Sheets:', err);
-        return false;
-    }
-}
-
-async function deleteEventFromSheets(rowIndex) {
-    try {
-        const result = await sheetsFetch('deleteEvent', { rowIndex });
-        if (result.success) {
-            await loadEventsFromSheets();
-            return true;
-        }
-        return false;
-    } catch (err) {
-        console.error('Error deleting event from Sheets:', err);
-        return false;
-    }
-}
-
-// ===== EVENTS - Firebase (Backup) =====
-function loadEventsFromFirebase() {
-    if (!currentUserId) return;
-    const eventsRef = ref(database, `events/${currentUserId}`);
-    onValue(eventsRef, (snapshot) => {
-        const data = snapshot.val();
-        // Only update if Sheets didn't load (or as backup)
-        if (data && events.length === 0) {
-            const firebaseEvents = [];
-            Object.keys(data).forEach(key => {
-                firebaseEvents.push({ id: key, ...data[key] });
-            });
-            events = firebaseEvents;
-            renderCalendar(currentMonth, currentYear);
-            renderEvents(events);
-            updateTaskCount();
-        }
-    });
-}
-
-async function saveEventToFirebase(date, time, title, desc, userId) {
-    try {
-        const eventsRef = ref(database, `events/${userId || currentUserId}`);
-        await push(eventsRef, { date, time, title, desc });
-        return true;
-    } catch (err) {
-        console.error('Error saving to Firebase:', err);
-        return false;
-    }
-}
-
-// ===== EVENT HANDLERS (Unified) =====
-async function addEvent(date, time, title, desc) {
-    if (!date || !title) {
-        alert('Please enter at least a date and title.');
-        return;
-    }
-    
-    const userId = currentUserId || 'local';
-    const newEvent = { date, time: time || '', title, desc: desc || '' };
-    
-    // Try Google Sheets first
-    let success = await saveEventToSheets(date, time, title, desc, userId);
-    
-    // If Sheets fails, try Firebase
-    if (!success) {
-        success = await saveEventToFirebase(date, time, title, desc, userId);
-    }
-    
-    if (success) {
-        // Clear form
-        eventDate.value = '';
-        eventTime.value = '';
-        eventTitle.value = '';
-        eventDesc.value = '';
-        // Reload events
-        await loadEventsFromSheets();
-    } else {
-        alert('Error saving event. Please try again.');
-    }
-}
-
-async function deleteEvent(id) {
-    if (!id) return;
-    if (!confirm('Delete this event?')) return;
-    
-    // Find the event in the list to get its rowIndex for Sheets
-    const event = events.find(e => e.id === id);
-    const rowIndex = event?.rowIndex;
-    
-    let success = false;
-    if (rowIndex) {
-        success = await deleteEventFromSheets(rowIndex);
-    }
-    
-    // If Sheets deletion fails or no rowIndex, try Firebase
-    if (!success && currentUserId) {
-        try {
-            await set(ref(database, `events/${currentUserId}/${id}`), null);
-            success = true;
-        } catch (err) {
-            console.error('Error deleting from Firebase:', err);
-        }
-    }
-    
-    if (success) {
-        await loadEventsFromSheets();
-    } else {
-        alert('Error deleting event.');
-    }
-}
-
-// ===== NOTIFICATION HANDLER (Unified) =====
-async function sendNotification(text, sender) {
-    if (!text) { alert('Please enter a message.'); return; }
-    
-    // Try Google Sheets first
-    let success = await saveNotificationToSheets(text, sender || 'admin');
-    
-    // If Sheets fails, try Firebase
-    if (!success) {
-        success = await saveNotificationToFirebase(text, sender || 'admin');
-    }
-    
-    if (success) {
-        // Reload notifications
-        await loadNotificationsFromSheets();
-        await loadNotificationsFromFirebase();
-        closeModal('adminNotifModal');
-        alert('Notification sent successfully!');
-    } else {
-        alert('Error sending notification. Please try again.');
-    }
-}
-
-// ===== RENDER CALENDAR =====
-function renderCalendar(month, year) {
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const today = new Date();
-    const todayDate = today.getDate();
-    const todayMonth = today.getMonth();
-    const todayYear = today.getFullYear();
-
-    let html = '';
-    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    dayHeaders.forEach(d => {
-        html += `<div class="day-header">${d}</div>`;
-    });
-
-    for (let i = 0; i < firstDay; i++) {
-        html += `<div class="day-cell"></div>`;
-    }
-
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dateObj = new Date(year, month, d);
-        const dateStr = dateObj.toISOString().split('T')[0];
-        const hasEvent = events.some(e => e.date === dateStr);
-        const isToday = (d === todayDate && month === todayMonth && year === todayYear);
-        let cls = 'day-cell';
-        if (hasEvent) cls += ' has-event';
-        if (isToday) cls += ' today';
-        html += `<div class="${cls}" data-date="${dateStr}" onclick="selectDate('${dateStr}')">${d}</div>`;
-    }
-    calendarGrid.innerHTML = html;
-}
-
-window.selectDate = function(dateStr) {
-    document.getElementById('eventDate').value = dateStr;
-};
-
-// ===== RENDER EVENTS =====
-function renderEvents(eventList) {
-    const searchTerm = searchEvent.value.toLowerCase();
-    const filtered = eventList.filter(e => {
-        const title = e.title?.toLowerCase() || '';
-        const desc = e.desc?.toLowerCase() || '';
-        return title.includes(searchTerm) || desc.includes(searchTerm);
-    });
-    
-    filtered.sort((a, b) => {
-        if (a.date < b.date) return -1;
-        if (a.date > b.date) return 1;
-        if (a.time < b.time) return -1;
-        if (a.time > b.time) return 1;
-        return 0;
-    });
-
-    let html = '';
-    if (filtered.length === 0) {
-        html = '<p style="color:#9ca3af;font-size:0.9rem;">No events found.</p>';
-    } else {
-        filtered.forEach(e => {
-            const id = e.id || e._id || '';
-            html += `
-                <div class="event-item">
-                    <div class="event-info">
-                        <div class="title">${e.title || 'Untitled'}</div>
-                        <div class="desc">${e.desc || ''}</div>
-                        <div class="datetime">${e.date} ${e.time || ''}</div>
-                    </div>
-                    <button class="delete-event" data-id="${id}" data-row="${e.rowIndex || ''}">✕</button>
-                </div>
-            `;
-        });
-    }
-    eventsContainer.innerHTML = html;
-
-    document.querySelectorAll('.delete-event').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = this.dataset.id;
-            const row = this.dataset.row;
-            deleteEvent(id || row);
-        });
-    });
-}
-
-// ===== UPDATE TASK COUNT =====
-function updateTaskCount() {
-    const today = new Date().toISOString().split('T')[0];
-    const todayEvents = events.filter(e => e.date === today);
-    if (taskCount) taskCount.textContent = todayEvents.length;
-}
-
-// ===== AUTO-GENERATE SCHEDULE =====
-function generateSchedule() {
-    if (!currentUserId) return;
-    const today = new Date();
-    const start = new Date(today);
-    start.setDate(today.getDate() - today.getDay() + 1);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 28);
-
-    let count = 0;
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const day = d.getDay();
-        if (day === 1 || day === 3 || day === 5) {
-            const dateStr = d.toISOString().split('T')[0];
-            const exists = events.some(e => e.date === dateStr);
-            if (!exists) {
-                saveEventToSheets(dateStr, '18:30', 'ICT Class', 'Regular ICT class session', currentUserId);
-                count++;
-            }
-        }
-    }
-    // Reload events after generation
-    setTimeout(() => loadEventsFromSheets(), 1000);
-    alert(`Generated ${count} new class events for the next 4 weeks.`);
-}
-
-// ===== LOGIN =====
+// ============================================================
+// AUTH FUNCTIONS
+// ============================================================
 async function loginUser(phone, pass) {
     if (!phone || !pass) { alert('Please enter phone and password.'); return; }
     loginBtn.disabled = true;
@@ -541,7 +195,6 @@ async function loginUser(phone, pass) {
     }
 }
 
-// ===== SIGNUP =====
 async function signupUser(name, phone, pass) {
     if (!name || !phone || !pass) { alert('Please fill all fields.'); return; }
     try {
@@ -558,7 +211,6 @@ async function signupUser(name, phone, pass) {
     }
 }
 
-// ===== GOOGLE LOGIN =====
 async function googleLogin() {
     try {
         const result = await signInWithPopup(auth, provider);
@@ -586,7 +238,43 @@ async function googleLogin() {
     }
 }
 
-// ===== OTP =====
+async function changePassword(newPass) {
+    if (!newPass) { alert('Enter new password.'); return; }
+    try {
+        if (auth.currentUser) {
+            await updatePassword(auth.currentUser, newPass);
+            alert('Password updated successfully!');
+            closeModal('changePassModal');
+        } else {
+            alert('Please login again to change password.');
+        }
+    } catch (err) {
+        alert('Error updating password. Please try again.');
+        console.error(err);
+    }
+}
+
+async function saveProfile(data) {
+    const userData = getUserLocally();
+    if (!userData.uid) { alert('Please login first.'); return; }
+    try {
+        if (userData.uid !== 'local') {
+            await update(ref(database, `users/${userData.uid}`), data);
+        }
+        const merged = { ...userData.data, ...data };
+        saveUserLocally(userData.uid, merged);
+        showDashboard(merged);
+        closeModal('profileModal');
+        alert('Profile updated successfully!');
+    } catch (err) {
+        alert('Error saving profile.');
+        console.error(err);
+    }
+}
+
+// ============================================================
+// OTP FOR FORGOT PASSWORD
+// ============================================================
 let otpCode = '',
     otpVerified = false,
     currentPhone = '',
@@ -621,7 +309,7 @@ document.getElementById('sendOtpBtn').addEventListener('click', () => {
     document.getElementById('sendOtpBtn').disabled = true;
     document.getElementById('otpTimer').textContent = '📨 OTP sent! Check console or SMS.';
     document.getElementById('otpStatus').textContent = '';
-    document.getElementById('otpStatus').className = 'otp-status';
+    document.getElementById('otpStatus').className = '';
     startOtpTimer(60);
     alert(`OTP sent to ${phone} (Demo: ${otpCode})`);
 });
@@ -632,12 +320,11 @@ document.getElementById('verifyOtpBtn').addEventListener('click', () => {
     if (entered === otpCode) {
         otpVerified = true;
         document.getElementById('otpStatus').textContent = '✅ OTP verified successfully!';
-        document.getElementById('otpStatus').className = 'otp-verified';
+        document.getElementById('otpStatus').style.color = '#4caf50';
         document.getElementById('otpTimer').textContent = '';
         alert('OTP verified! Set your new password.');
     } else {
         document.getElementById('otpStatus').textContent = '❌ Invalid OTP. Please try again.';
-        document.getElementById('otpStatus').className = 'otp-status';
         document.getElementById('otpStatus').style.color = '#ff4444';
     }
 });
@@ -652,7 +339,6 @@ document.getElementById('resetPassBtn').addEventListener('click', async () => {
         closeModal('forgotModal');
         otpVerified = false;
         document.getElementById('otpStatus').textContent = '';
-        document.getElementById('otpStatus').className = 'otp-status';
         document.getElementById('otpTimer').textContent = '';
         document.getElementById('otpInput').value = '';
         document.getElementById('resetNewPass').value = '';
@@ -668,43 +354,9 @@ document.getElementById('resetPassBtn').addEventListener('click', async () => {
     }
 });
 
-// ===== CHANGE PASSWORD =====
-async function changePassword(newPass) {
-    if (!newPass) { alert('Enter new password.'); return; }
-    try {
-        if (auth.currentUser) {
-            await updatePassword(auth.currentUser, newPass);
-            alert('Password updated successfully!');
-            closeModal('changePassModal');
-        } else {
-            alert('Please login again to change password.');
-        }
-    } catch (err) {
-        alert('Error updating password. Please try again.');
-        console.error(err);
-    }
-}
-
-// ===== SAVE PROFILE =====
-async function saveProfile(data) {
-    const userData = getUserLocally();
-    if (!userData.uid) { alert('Please login first.'); return; }
-    try {
-        if (userData.uid !== 'local') {
-            await update(ref(database, `users/${userData.uid}`), data);
-        }
-        const merged = { ...userData.data, ...data };
-        saveUserLocally(userData.uid, merged);
-        showDashboard(merged);
-        closeModal('profileModal');
-        alert('Profile updated successfully!');
-    } catch (err) {
-        alert('Error saving profile.');
-        console.error(err);
-    }
-}
-
-// ===== AUTH STATE =====
+// ============================================================
+// AUTH STATE OBSERVER
+// ============================================================
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         const snapshot = await get(child(ref(database), `users/${user.uid}`));
@@ -724,13 +376,17 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// ===== EVENT BINDINGS =====
+// ============================================================
+// EVENT BINDINGS (Auth)
+// ============================================================
 loginBtn.addEventListener('click', () => loginUser(loginPhone.value.trim(), loginPass.value.trim()));
 loginPass.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
 googleBtn.addEventListener('click', googleLogin);
 
-document.getElementById('signupLink').addEventListener('click', (e) => { e.preventDefault(); openModal('signupModal'); });
-document.getElementById('forgotLink').addEventListener('click', (e) => { e.preventDefault(); openModal('forgotModal'); });
+document.getElementById('signupLink').addEventListener('click', (e) => { e.preventDefault();
+    openModal('signupModal'); });
+document.getElementById('forgotLink').addEventListener('click', (e) => { e.preventDefault();
+    openModal('forgotModal'); });
 
 document.getElementById('signupBtn').addEventListener('click', () => {
     const name = document.getElementById('signupName').value.trim();
@@ -774,31 +430,9 @@ document.getElementById('saveProfileBtn').addEventListener('click', () => {
     saveProfile(data);
 });
 
-// ===== ADMIN NOTIFICATION =====
-editNotifBtn.addEventListener('click', () => {
-    notifInput.value = notificationText.textContent;
-    notifSender.value = 'Admin';
-    openModal('adminNotifModal');
-});
-
-saveNotifBtn.addEventListener('click', () => {
-    const text = notifInput.value.trim();
-    const sender = notifSender.value.trim() || 'Admin';
-    sendNotification(text, sender);
-});
-
-// ===== CALENDAR EVENT BINDINGS =====
-addEventBtn.addEventListener('click', () => {
-    addEvent(eventDate.value, eventTime.value, eventTitle.value, eventDesc.value);
-});
-
-searchEvent.addEventListener('input', () => {
-    renderEvents(events);
-});
-
-generateScheduleBtn.addEventListener('click', generateSchedule);
-
-// ===== SIDEBAR NAVIGATION =====
+// ============================================================
+// SIDEBAR NAVIGATION
+// ============================================================
 document.querySelectorAll('.sidebar .nav-item[data-section]').forEach(item => {
     item.addEventListener('click', function() {
         document.querySelectorAll('.sidebar .nav-item').forEach(el => el.classList.remove('active'));
@@ -806,26 +440,380 @@ document.querySelectorAll('.sidebar .nav-item[data-section]').forEach(item => {
         document.querySelectorAll('.section-content').forEach(el => el.classList.add('hidden'));
         const target = document.getElementById('section-' + this.dataset.section);
         if (target) target.classList.remove('hidden');
+        if (this.dataset.section === 'calendar') {
+            renderCalendar();
+        }
     });
 });
 
-// ===== LOGOUT =====
+// ============================================================
+// LOGOUT
+// ============================================================
 document.getElementById('logoutBtn').addEventListener('click', async (e) => {
     e.preventDefault();
     try { if (auth.currentUser) await signOut(auth); } catch (e) {}
     clearUserLocally();
     dashScreen.classList.add('hidden');
     authScreen.classList.remove('hidden');
+    notifBar.style.display = 'none';
 });
 
-// ===== MODAL HELPERS =====
+// ============================================================
+// MODAL HELPERS
+// ============================================================
 function openModal(id) { document.getElementById(id).classList.add('active'); }
+
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 window.openModal = openModal;
 window.closeModal = closeModal;
-document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); }));
+document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', function(e) { if (e.target === this)
+        this.classList.remove('active'); }));
 
-// ===== CHATBOT =====
+// ============================================================
+// CALENDAR SYSTEM
+// ============================================================
+
+function loadEvents(uid) {
+    const eventsRef = ref(database, `events/${uid}`);
+    onValue(eventsRef, (snapshot) => {
+        const data = snapshot.val();
+        eventsCache = data || {};
+        const calendarSection = document.getElementById('section-calendar');
+        if (!calendarSection.classList.contains('hidden')) {
+            renderCalendar();
+            renderEventsForDate(selectedDate || currentDate);
+        }
+    });
+}
+
+async function saveEvent(uid, eventData) {
+    const eventsRef = ref(database, `events/${uid}`);
+    const newEventRef = push(eventsRef);
+    await set(newEventRef, { ...eventData, createdAt: new Date().toISOString() });
+    return newEventRef.key;
+}
+
+async function updateEvent(uid, eventKey, eventData) {
+    const eventRef = ref(database, `events/${uid}/${eventKey}`);
+    await update(eventRef, eventData);
+}
+
+async function deleteEvent(uid, eventKey) {
+    const eventRef = ref(database, `events/${uid}/${eventKey}`);
+    await remove(eventRef);
+}
+
+function getEventsForDate(date) {
+    const dateStr = date.toISOString().split('T')[0];
+    const results = [];
+    const userData = getUserLocally();
+    if (!userData.uid) return results;
+    const events = eventsCache || {};
+    for (const [key, event] of Object.entries(events)) {
+        if (event.date === dateStr) {
+            results.push({ key, ...event });
+        }
+    }
+    return results;
+}
+
+function getAllEvents() {
+    const results = [];
+    const userData = getUserLocally();
+    if (!userData.uid) return results;
+    const events = eventsCache || {};
+    for (const [key, event] of Object.entries(events)) {
+        results.push({ key, ...event });
+    }
+    return results;
+}
+
+function renderCalendar() {
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+    calendarMonthYear.textContent = new Date(currentYear, currentMonth).toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
+    });
+
+    while (calendarGrid.children.length > 7) {
+        calendarGrid.removeChild(calendarGrid.lastChild);
+    }
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    for (let i = firstDay - 1; i >= 0; i--) {
+        const day = daysInPrevMonth - i;
+        const cell = document.createElement('div');
+        cell.className = 'day-cell other-month';
+        cell.innerHTML = `<span class="day-number">${day}</span>`;
+        calendarGrid.appendChild(cell);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const cell = document.createElement('div');
+        const dateObj = new Date(currentYear, currentMonth, day);
+        const dateStr = dateObj.toISOString().split('T')[0];
+        const isToday = dateStr === todayStr;
+
+        cell.className = 'day-cell';
+        if (isToday) cell.classList.add('today');
+
+        const events = getEventsForDate(dateObj);
+        if (events.length > 0) {
+            cell.classList.add('has-event');
+        }
+
+        cell.innerHTML = `<span class="day-number">${day}</span>`;
+        if (events.length > 0) {
+            cell.innerHTML += `<span class="event-dot"></span>`;
+        }
+
+        cell.addEventListener('click', () => {
+            selectedDate = dateObj;
+            renderEventsForDate(dateObj);
+            document.querySelectorAll('.day-cell').forEach(el => el.style.border = 'none');
+            cell.style.border = '2px solid var(--primary)';
+            cell.style.borderRadius = '8px';
+            document.getElementById('eventDate').value = dateStr;
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('eventDesc').value = '';
+            document.getElementById('eventTime').value = '';
+            document.getElementById('eventType').value = 'work';
+            document.getElementById('eventModalTitle').textContent = '📝 Add Event';
+            document.getElementById('saveEventBtn').textContent = '💾 Save Event';
+            document.getElementById('deleteEventBtn').style.display = 'none';
+            editingEventKey = null;
+            openModal('eventModal');
+        });
+
+        calendarGrid.appendChild(cell);
+    }
+
+    const totalCells = calendarGrid.children.length;
+    const remaining = 42 - totalCells;
+    for (let day = 1; day <= remaining; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell other-month';
+        cell.innerHTML = `<span class="day-number">${day}</span>`;
+        calendarGrid.appendChild(cell);
+    }
+
+    if (!selectedDate) {
+        selectedDate = today;
+        renderEventsForDate(today);
+    }
+}
+
+function renderEventsForDate(date) {
+    const events = getEventsForDate(date);
+    const dateStr = date.toISOString().split('T')[0];
+
+    if (events.length === 0) {
+        eventList.innerHTML = `<div class="no-events">📭 No events for ${dateStr}. Click a date to add one.</div>`;
+        return;
+    }
+
+    let html = '';
+    const typeEmojis = { 'work': '💼', 'task': '✅', 'class': '📚', 'other': '📌' };
+    const typeLabels = { 'work': 'Work', 'task': 'Task', 'class': 'Class', 'other': 'Other' };
+
+    events.forEach(event => {
+        const emoji = typeEmojis[event.type] || '📌';
+        const label = typeLabels[event.type] || 'Other';
+        html += `
+                    <div class="event-item" data-key="${event.key}">
+                        <div class="event-info">
+                            <div class="event-title">${emoji} ${event.title || 'Untitled'}</div>
+                            <div class="event-desc">${event.description || ''} ${event.time ? '· ' + event.time : ''}</div>
+                            <div class="event-time">${label}</div>
+                        </div>
+                        <div style="display:flex;gap:0.3rem;">
+                            <button class="event-edit" data-key="${event.key}" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:0.9rem;">✏️</button>
+                            <button class="event-delete" data-key="${event.key}" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.9rem;">🗑️</button>
+                        </div>
+                    </div>
+                `;
+    });
+
+    eventList.innerHTML = html;
+
+    document.querySelectorAll('.event-edit').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const key = btn.dataset.key;
+            const userData = getUserLocally();
+            if (!userData.uid) return;
+            const events = eventsCache || {};
+            const event = events[key];
+            if (!event) return;
+            editingEventKey = key;
+            document.getElementById('eventDate').value = event.date || '';
+            document.getElementById('eventTitle').value = event.title || '';
+            document.getElementById('eventDesc').value = event.description || '';
+            document.getElementById('eventTime').value = event.time || '';
+            document.getElementById('eventType').value = event.type || 'work';
+            document.getElementById('eventModalTitle').textContent = '✏️ Edit Event';
+            document.getElementById('saveEventBtn').textContent = '💾 Update Event';
+            document.getElementById('deleteEventBtn').style.display = 'block';
+            openModal('eventModal');
+        });
+    });
+
+    document.querySelectorAll('.event-delete').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const key = btn.dataset.key;
+            const userData = getUserLocally();
+            if (!userData.uid) return;
+            if (confirm('Delete this event?')) {
+                await deleteEvent(userData.uid, key);
+                loadEvents(userData.uid);
+            }
+        });
+    });
+}
+
+// ============================================================
+// CALENDAR EVENT BINDINGS
+// ============================================================
+
+document.getElementById('prevMonthBtn').addEventListener('click', () => {
+    if (currentMonth === 0) {
+        currentMonth = 11;
+        currentYear--;
+    } else {
+        currentMonth--;
+    }
+    renderCalendar();
+});
+
+document.getElementById('nextMonthBtn').addEventListener('click', () => {
+    if (currentMonth === 11) {
+        currentMonth = 0;
+        currentYear++;
+    } else {
+        currentMonth++;
+    }
+    renderCalendar();
+});
+
+document.getElementById('todayBtn').addEventListener('click', () => {
+    const today = new Date();
+    currentMonth = today.getMonth();
+    currentYear = today.getFullYear();
+    selectedDate = today;
+    renderCalendar();
+});
+
+document.getElementById('saveEventBtn').addEventListener('click', async () => {
+    const userData = getUserLocally();
+    if (!userData.uid) { alert('Please login first.'); return; }
+
+    const date = document.getElementById('eventDate').value;
+    const title = document.getElementById('eventTitle').value.trim();
+    const description = document.getElementById('eventDesc').value.trim();
+    const time = document.getElementById('eventTime').value;
+    const type = document.getElementById('eventType').value;
+
+    if (!date) { alert('Please select a date.'); return; }
+    if (!title) { alert('Please enter a title.'); return; }
+
+    const eventData = { date, title, description, time, type };
+
+    try {
+        if (editingEventKey) {
+            await updateEvent(userData.uid, editingEventKey, eventData);
+        } else {
+            await saveEvent(userData.uid, eventData);
+        }
+        closeModal('eventModal');
+        loadEvents(userData.uid);
+        renderCalendar();
+        if (selectedDate) {
+            renderEventsForDate(selectedDate);
+        }
+        alert(editingEventKey ? 'Event updated!' : 'Event saved!');
+        editingEventKey = null;
+    } catch (err) {
+        alert('Error saving event: ' + err.message);
+        console.error(err);
+    }
+});
+
+document.getElementById('deleteEventBtn').addEventListener('click', async () => {
+    if (!editingEventKey) return;
+    const userData = getUserLocally();
+    if (!userData.uid) return;
+    if (confirm('Delete this event?')) {
+        await deleteEvent(userData.uid, editingEventKey);
+        closeModal('eventModal');
+        loadEvents(userData.uid);
+        renderCalendar();
+        if (selectedDate) renderEventsForDate(selectedDate);
+        editingEventKey = null;
+    }
+});
+
+// ============================================================
+// SEARCH EVENTS
+// ============================================================
+document.getElementById('searchEventsBtn').addEventListener('click', () => {
+    const query = eventSearchInput.value.trim().toLowerCase();
+    if (!query) {
+        if (selectedDate) renderEventsForDate(selectedDate);
+        return;
+    }
+
+    const allEvents = getAllEvents();
+    const filtered = allEvents.filter(e =>
+        (e.title && e.title.toLowerCase().includes(query)) ||
+        (e.description && e.description.toLowerCase().includes(query)) ||
+        (e.type && e.type.toLowerCase().includes(query)) ||
+        (e.date && e.date.includes(query))
+    );
+
+    if (filtered.length === 0) {
+        eventList.innerHTML = `<div class="no-events">🔍 No events found matching "${query}"</div>`;
+        return;
+    }
+
+    const typeEmojis = { 'work': '💼', 'task': '✅', 'class': '📚', 'other': '📌' };
+    const typeLabels = { 'work': 'Work', 'task': 'Task', 'class': 'Class', 'other': 'Other' };
+
+    let html =
+        `<div style="margin-bottom:0.5rem;color:var(--text-gray);font-size:0.8rem;">🔍 Found ${filtered.length} results for "${query}"</div>`;
+    filtered.forEach(event => {
+        const emoji = typeEmojis[event.type] || '📌';
+        const label = typeLabels[event.type] || 'Other';
+        html += `
+                    <div class="event-item">
+                        <div class="event-info">
+                            <div class="event-title">${emoji} ${event.title || 'Untitled'}</div>
+                            <div class="event-desc">📅 ${event.date || ''} ${event.time ? '· ' + event.time : ''}</div>
+                            <div class="event-time">${label}</div>
+                        </div>
+                    </div>
+                `;
+    });
+    eventList.innerHTML = html;
+});
+
+document.getElementById('clearSearchBtn').addEventListener('click', () => {
+    eventSearchInput.value = '';
+    if (selectedDate) renderEventsForDate(selectedDate);
+});
+
+eventSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('searchEventsBtn').click();
+});
+
+// ============================================================
+// CHATBOT
+// ============================================================
 const chatToggle = document.getElementById('chatToggle');
 const chatWindow = document.getElementById('chatWindow');
 const chatClose = document.getElementById('chatClose');
@@ -866,12 +854,8 @@ function getBotReply(input) {
     if (lower.includes('institute') || lower.includes('school') || lower.includes('academy'))
         return '🏫 We partner with Sakya Academy, Yahansa, Nanik, Sipwin, and IMS Kandy. Check the Institutes section!';
     if (lower.includes('calendar') || lower.includes('event') || lower.includes('task'))
-        return '📅 Use the Calendar section to add events. Data is saved to Google Sheets with Firebase backup.';
-    if (lower.includes('notification') || lower.includes('message'))
-        return '🔔 Admins can update notifications via the "Admin" button on the notification bar.';
-    if (lower.includes('sheets') || lower.includes('google'))
-        return '📊 All calendar events and notifications are saved to Google Sheets with Firebase as backup.';
-    return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar, notifications, and profile updates.';
+        return '📅 Use the Calendar section to add work hours, tasks, and class dates. You can search and manage all your events!';
+    return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar events, and profile updates.';
 }
 
 chatSend.addEventListener('click', () => {
@@ -888,13 +872,15 @@ chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') chatSend.cli
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('quick-reply')) {
         const msg = e.target.dataset.msg;
-        if (msg) { chatInput.value = msg; chatSend.click(); }
+        if (msg) { chatInput.value = msg;
+            chatSend.click(); }
     }
 });
 
+// ============================================================
+// INIT
+// ============================================================
 console.log('🔥 Firebase connected!');
-console.log('📊 Google Sheets integration enabled.');
-console.log('📅 Calendar events save to both Google Sheets and Firebase.');
-console.log('🔔 Notifications save to both Google Sheets and Firebase.');
-console.log('👤 Profile image: Profile.png');
-console.log('
+console.log('📊 Google Sheets notification system ready with your CSV URL.');
+console.log('📅 Calendar system ready with Firebase storage.');
+console.log('🔍 Search events by title, description, date, or type.');
