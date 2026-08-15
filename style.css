@@ -579,6 +579,19 @@ textarea {
     opacity: 1;
     transform: scale(1.1);
 }
+#editNotifBtn {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 40px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+#editNotifBtn:hover {
+    background: rgba(255,255,255,0.25);
+}
 /* Sidebar */
 .sidebar {
     width: 260px;
@@ -591,7 +604,7 @@ textarea {
     position: sticky;
     top: 0;
     z-index: 20;
-    margin-top: 0; /* notification bar offset */
+    margin-top: 0;
 }
 .sidebar .logo {
     font-size: 1.6rem;
@@ -655,7 +668,7 @@ textarea {
     overflow-y: auto;
     height: 100vh;
     background: #0a0a0a;
-    margin-top: 48px; /* notification bar height */
+    margin-top: 48px;
 }
 /* Top Bar */
 .top-bar {
