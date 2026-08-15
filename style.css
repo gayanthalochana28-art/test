@@ -30,6 +30,7 @@
     --radius-xl: 32px;
     --font: 'Poppins', system-ui, -apple-system, sans-serif;
     --transition: 0.3s ease;
+    --sidebar-width: 240px;
 }
 html {
     font-size: 16px;
@@ -605,7 +606,7 @@ button {
     z-index: 10;
 }
 .sidebar {
-    width: 240px;
+    width: var(--sidebar-width);
     background: #0d0d0d;
     border-right: 1px solid var(--border-color);
     padding: 1.2rem 0.8rem;
@@ -616,6 +617,7 @@ button {
     position: sticky;
     top: 0;
     z-index: 20;
+    transition: width 0.3s ease;
 }
 .sidebar .logo {
     font-size: 1.4rem;
@@ -1016,6 +1018,30 @@ button {
     background: var(--primary);
     color: white;
     box-shadow: 0 4px 20px rgba(219, 57, 0, 0.3);
+}
+
+/* ===== PROFILE PHOTO UPLOAD ===== */
+.photo-upload-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    text-align: center;
+    padding: 4px 0;
+    font-size: 0.7rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: 0.3s;
+    border-radius: 0 0 50% 50%;
+    backdrop-filter: blur(4px);
+}
+.photo-upload-label:hover {
+    opacity: 1;
+}
+.profile-avatar-wrapper:hover .photo-upload-label {
+    opacity: 1;
 }
 
 /* ============================================================
@@ -1664,11 +1690,15 @@ button {
 }
 
 /* ============================================================
-   RESPONSIVE
+   RESPONSIVE - AUTO DETECT & CUSTOMIZE
    ============================================================ */
+
+/* ===== TABLET & SMALL DESKTOP ===== */
 @media (max-width: 1024px) {
+    :root {
+        --sidebar-width: 200px;
+    }
     .sidebar {
-        width: 200px;
         padding: 1rem 0.6rem;
     }
     .main-content {
@@ -1688,7 +1718,10 @@ button {
         font-size: 0.75rem;
     }
 }
+
+/* ===== MOBILE (PHONE) ===== */
 @media (max-width: 768px) {
+    /* Login screen - stack vertically */
     .login-container {
         flex-direction: column;
         min-height: auto;
@@ -1711,6 +1744,17 @@ button {
     .login-form .logo-mobile {
         display: block;
     }
+    .login-form .subtitle-sinhala {
+        font-size: 0.65rem;
+    }
+    .login-form .subtitle-english {
+        font-size: 0.55rem;
+    }
+
+    /* Dashboard - sidebar becomes horizontal */
+    .dashboard-container {
+        flex-direction: column;
+    }
     .sidebar {
         width: 100%;
         height: auto;
@@ -1722,14 +1766,22 @@ button {
         flex-wrap: wrap;
         gap: 0.3rem;
         overflow-x: auto;
+        min-height: auto;
+        max-height: 60px;
+        align-items: center;
     }
     .sidebar .logo {
         display: none;
     }
     .sidebar .nav-item {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.75rem;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.7rem;
         white-space: nowrap;
+        margin-bottom: 0;
+    }
+    .sidebar .nav-item .icon {
+        font-size: 0.9rem;
+        width: 18px;
     }
     .sidebar .section-label {
         display: none;
@@ -1739,16 +1791,25 @@ button {
         border-top: none;
         padding-top: 0;
     }
-    .dashboard-container {
-        flex-direction: column;
-    }
     .main-content {
         height: auto;
         padding: 1rem;
+        padding-top: 0.8rem;
     }
+
+    /* Stats - 2 columns */
     .stats-grid {
         grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
     }
+    .stat-card {
+        padding: 0.8rem;
+    }
+    .stat-card .value {
+        font-size: 1.2rem;
+    }
+
+    /* Top bar */
     .top-bar {
         flex-direction: column;
         align-items: flex-start;
@@ -1757,6 +1818,8 @@ button {
     .top-bar h1 {
         font-size: 1.2rem;
     }
+
+    /* Calendar */
     .calendar-grid .day-cell {
         min-height: 28px;
         font-size: 0.7rem;
@@ -1768,12 +1831,16 @@ button {
         flex-direction: column;
         align-items: flex-start;
     }
+
+    /* Chatbot */
     .chatbot-window {
         width: 300px;
         right: 10px;
         bottom: 70px;
         max-height: 400px;
     }
+
+    /* Notification bar */
     .notification-bar {
         font-size: 0.7rem;
         padding: 0.3rem 0.8rem;
@@ -1781,27 +1848,42 @@ button {
     .with-notif {
         padding-top: 2.2rem;
     }
+
+    /* Profile photo */
+    .photo-upload-label {
+        opacity: 1;
+        font-size: 0.6rem;
+        padding: 2px 0;
+    }
 }
+
+/* ===== SMALL PHONE ===== */
 @media (max-width: 480px) {
     .login-image {
         flex: 0 0 140px;
         min-height: 140px;
     }
     .login-form .subtitle-sinhala {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
     }
     .login-form .subtitle-english {
-        font-size: 0.55rem;
+        font-size: 0.5rem;
     }
     .stats-grid {
         grid-template-columns: 1fr 1fr;
-        gap: 0.6rem;
+        gap: 0.4rem;
     }
     .stat-card {
-        padding: 0.8rem;
+        padding: 0.6rem;
     }
     .stat-card .value {
-        font-size: 1.2rem;
+        font-size: 1rem;
+    }
+    .stat-card .label {
+        font-size: 0.6rem;
+    }
+    .stat-card .change {
+        font-size: 0.6rem;
     }
     .calendar-grid .day-cell {
         min-height: 24px;
@@ -1814,12 +1896,24 @@ button {
     .calendar-header .month-year {
         font-size: 0.9rem;
     }
+    .calendar-header .nav-btn {
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
+    }
     .search-bar input {
         font-size: 0.75rem;
         padding: 0.4rem 0.8rem;
     }
+    .search-bar .search-btn,
+    .search-bar .clear-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+    }
     .modal-card {
         padding: 1.2rem;
+    }
+    .modal-card h2 {
+        font-size: 1.2rem;
     }
     .chatbot-window {
         width: 280px;
@@ -1831,11 +1925,163 @@ button {
         padding: 8px 14px;
         font-size: 0.75rem;
     }
+    .sidebar .nav-item {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.5rem;
+    }
+    .sidebar .nav-item .icon {
+        font-size: 0.8rem;
+        width: 16px;
+    }
+    .sidebar {
+        max-height: 50px;
+        padding: 0.5rem;
+    }
+
+    /* Profile section */
+    .profile-field {
+        flex-direction: column;
+        gap: 0.1rem;
+    }
+    .profile-field .label {
+        font-size: 0.7rem;
+    }
+    .profile-field .value {
+        font-size: 0.8rem;
+    }
+    .home-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+    }
+    .section-card {
+        padding: 0.8rem 1rem;
+    }
+    .section-card .title {
+        font-size: 0.9rem;
+    }
+    .section-card .list-item {
+        font-size: 0.75rem;
+    }
+    .institute-card {
+        padding: 0.8rem;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .institute-card .institute-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 1.2rem;
+    }
+    .institute-card .institute-info h4 {
+        font-size: 0.8rem;
+    }
+    .institute-card .institute-info .address,
+    .institute-card .institute-info .phone {
+        font-size: 0.7rem;
+    }
 }
+
+/* ===== DARK MODE ===== */
 @media (prefers-color-scheme: dark) {
     :root {
         --bg-dark: #0a0a0a;
         --bg-card: #111111;
         --bg-input: #1a1a1a;
+    }
+}
+
+/* ===== TOUCH DEVICE OPTIMIZATION ===== */
+@media (hover: none) and (pointer: coarse) {
+    /* Larger touch targets */
+    .sidebar .nav-item {
+        padding: 0.8rem 0.7rem;
+    }
+    .calendar-grid .day-cell {
+        min-height: 40px;
+    }
+    .btn,
+    .home-btn,
+    .login-btn,
+    .google-btn,
+    .view-details-btn,
+    .search-btn,
+    .clear-btn,
+    .nav-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    .photo-upload-label {
+        opacity: 1;
+        padding: 6px 0;
+    }
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
+        /* Prevents iOS zoom */
+    }
+}
+
+/* ===== LANDSCAPE PHONE ===== */
+@media (max-height: 500px) and (orientation: landscape) {
+    .login-image {
+        flex: 0 0 120px;
+        min-height: 120px;
+    }
+    .login-form {
+        padding: 0.8rem 1rem;
+    }
+    .login-form .subtitle-sinhala,
+    .login-form .subtitle-english {
+        display: none;
+    }
+    .login-form .logo-mobile {
+        font-size: 1.2rem;
+        margin-bottom: 0.2rem;
+    }
+    .login-form .input-group {
+        margin-bottom: 0.3rem;
+    }
+    .login-form .input-group input {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+    .login-form .login-btn {
+        padding: 0.4rem;
+        font-size: 0.8rem;
+    }
+    .login-form .help-section {
+        margin-top: 0.3rem;
+        padding-top: 0.3rem;
+    }
+    .login-container {
+        min-height: auto;
+    }
+    .sidebar {
+        max-height: 45px;
+        padding: 0.3rem;
+    }
+    .sidebar .nav-item {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.6rem;
+    }
+    .main-content {
+        padding: 0.5rem;
+    }
+    .top-bar h1 {
+        font-size: 1rem;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 0.3rem;
+    }
+    .stat-card {
+        padding: 0.4rem;
+    }
+    .stat-card .value {
+        font-size: 0.9rem;
+    }
+    .stat-card .label {
+        font-size: 0.5rem;
     }
 }
