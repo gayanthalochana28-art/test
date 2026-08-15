@@ -1,5 +1,5 @@
 // ============================================================
-// FILE: script.js (COMPLETE - WITH PERMISSION ERROR FIX)
+// FILE: script.js (COMPLETE - WITH PROFILE PHOTO UPLOAD)
 // ============================================================
 
 // ============================================================
@@ -10,6 +10,7 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.17.1/firebas
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithPopup, GoogleAuthProvider, updatePassword, onAuthStateChanged, signOut }
 from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { getDatabase, ref, set, update, get, child, push, remove, onValue } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
 
 // ============================================================
 // FIREBASE CONFIG
@@ -31,10 +32,11 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const database = getDatabase(app);
+const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 
 // ============================================================
-// GOOGLE SHEETS NOTIFICATION (CONFIGURED WITH YOUR URL)
+// GOOGLE SHEETS NOTIFICATION
 // ============================================================
 const GOOGLE_SHEETS_URL =
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLDVD0TZD9vBDVClfGmQYxXGl3wPopuYdzlP0RQvjXqkmVW305TYaHFcUse5EyJoSmRM9h5OkDmRYb/pub?gid=0&single=true&output=csv';
@@ -52,11 +54,14 @@ const googleBtn = document.getElementById('googleBtn');
 const dashName = document.getElementById('dashName');
 const dashNameBadge = document.getElementById('dashNameBadge');
 const dashAvatar = document.getElementById('dashAvatar');
+const profileAvatarImg = document.getElementById('profileAvatarImg');
 const pFullName = document.getElementById('pFullName');
 const pPhone = document.getElementById('pPhone');
 const profileNameDisplay = document.getElementById('profileNameDisplay');
 const profilePhoneDisplay = document.getElementById('profilePhoneDisplay');
 const profileImgDisplay = document.getElementById('profileImgDisplay');
+const profilePhotoInput = document.getElementById('profilePhotoInput');
+const uploadStatus = document.getElementById('uploadStatus');
 
 // Notification Bar
 const notifBar = document.getElementById('notificationBar');
@@ -145,24 +150,132 @@ function clearUserLocally() {
 }
 
 // ============================================================
+// UPDATE PROFILE PHOTO DISPLAY
+// ============================================================
+function updateProfilePhoto(photoURL) {
+    const defaultPhoto = 'Profile.png';
+    const url = photoURL || defaultPhoto;
+
+    // Update all profile photo elements
+    if (profileAvatarImg) profileAvatarImg.src = url;
+    if (profileImgDisplay) profileImgDisplay.src = url;
+    if (dashAvatar) {
+        const img = dashAvatar.querySelector('img');
+        if (img) img.src = url;
+    }
+
+    // Also update local storage data
+    const userData = getUserLocally();
+    if (userData.data) {
+        userData.data.photo = url;
+        saveUserLocally(userData.uid, userData.data);
+    }
+}
+
+// ============================================================
+// PROFILE PHOTO UPLOAD TO FIREBASE STORAGE
+// ============================================================
+async function uploadProfilePhoto(file) {
+    const user = auth.currentUser;
+    if (!user) {
+        alert('Please login first.');
+        return;
+    }
+
+    if (!file || !file.type.startsWith('image/')) {
+        alert('Please select an image file.');
+        return;
+    }
+
+    // Max file size: 5MB
+    if (file.size > 5 * 1024 * 1024) {
+        alert('File is too large. Please select an image under 5MB.');
+        return;
+    }
+
+    uploadStatus.textContent = '⏳ Uploading...';
+    uploadStatus.style.color = '#ffaa00';
+
+    try {
+        // Create a unique filename
+        const ext = file.name.split('.').pop();
+        const filename = `profile_photos/${user.uid}_${Date.now()}.${ext}`;
+        const fileRef = storageRef(storage, filename);
+
+        // Upload file
+        const snapshot = await uploadBytes(fileRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        // Save URL to database
+        await update(ref(database, `users/${user.uid}`), { photo: downloadURL });
+
+        // Update local storage
+        const userData = getUserLocally();
+        if (userData.data) {
+            userData.data.photo = downloadURL;
+            saveUserLocally(user.uid, userData.data);
+        }
+
+        // Update UI
+        updateProfilePhoto(downloadURL);
+        uploadStatus.textContent = '✅ Photo updated!';
+        uploadStatus.style.color = '#4caf50';
+
+        // Also update the profile photo in the top bar
+        if (dashNameBadge) {
+            // Profile photo is already updated via updateProfilePhoto
+        }
+
+        console.log('Profile photo uploaded successfully:', downloadURL);
+
+    } catch (err) {
+        console.error('Upload error:', err);
+        if (err.message.includes('PERMISSION_DENIED')) {
+            uploadStatus.textContent = '❌ Permission denied. Check Firebase Storage rules.';
+            alert('❌ Permission denied to upload photo.\n\nPlease update Firebase Storage rules:\n\nallow read, write: if request.auth != null;');
+        } else {
+            uploadStatus.textContent = '❌ Upload failed: ' + err.message;
+            alert('Error uploading photo: ' + err.message);
+        }
+        uploadStatus.style.color = '#ff4444';
+    }
+}
+
+// ============================================================
+// PROFILE PHOTO INPUT HANDLER
+// ============================================================
+if (profilePhotoInput) {
+    profilePhotoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            uploadProfilePhoto(file);
+        }
+        // Reset input so same file can be re-uploaded
+        profilePhotoInput.value = '';
+    });
+}
+
+// ============================================================
 // SHOW DASHBOARD
 // ============================================================
 function showDashboard(userData) {
     authScreen.classList.add('hidden');
     dashScreen.classList.remove('hidden');
+
     const name = userData?.fullName || userData?.name || 'Student';
     const phone = userData?.phone || '-';
+    const photo = userData?.photo || 'Profile.png';
+
     dashName.textContent = name;
     dashNameBadge.textContent = name;
     pFullName.textContent = name;
     pPhone.textContent = phone;
     profileNameDisplay.textContent = name;
     profilePhoneDisplay.textContent = phone;
-    if (userData?.photo) {
-        const img = dashAvatar.querySelector('img');
-        if (img) img.src = userData.photo;
-        if (profileImgDisplay) profileImgDisplay.src = userData.photo;
-    }
+
+    // Update profile photo everywhere
+    updateProfilePhoto(photo);
+
     if (userData?.uid) {
         loadEvents(userData.uid);
     }
@@ -410,7 +523,7 @@ document.getElementById('editProfileBtn').addEventListener('click', () => {
     document.getElementById('editBirthday').value = data.birthday || '';
     document.getElementById('editNic').value = data.nic || '';
     document.getElementById('editInstitute').value = data.institute || '';
-    document.getElementById('editPhoto').value = data.photo || 'Profile.png';
+    // Remove photo URL field from edit modal since we have upload
     openModal('profileModal');
 });
 
@@ -424,8 +537,7 @@ document.getElementById('saveProfileBtn').addEventListener('click', () => {
         school: document.getElementById('editSchool').value.trim(),
         birthday: document.getElementById('editBirthday').value.trim(),
         nic: document.getElementById('editNic').value.trim(),
-        institute: document.getElementById('editInstitute').value.trim(),
-        photo: document.getElementById('editPhoto').value.trim() || 'Profile.png'
+        institute: document.getElementById('editInstitute').value.trim()
     };
     saveProfile(data);
 });
@@ -485,15 +597,12 @@ function loadEvents(uid) {
         }
     }, (error) => {
         if (error.message.includes('PERMISSION_DENIED')) {
-            alert('❌ Permission denied to read events. Please check Firebase security rules.\n\nMake sure you have rules like:\n{\n  "rules": {\n    "events": {\n      "$uid": {\n        ".read": "$uid === auth.uid",\n        ".write": "$uid === auth.uid"\n      }\n    }\n  }\n}');
+            alert('❌ Permission denied to read events. Please check Firebase security rules.');
         }
         console.error('Load events error:', error);
     });
 }
 
-// ============================================================
-// SAVE EVENT - IMPROVED ERROR HANDLING
-// ============================================================
 async function saveEvent(uid, eventData) {
     const eventsRef = ref(database, `events/${uid}`);
     const newEventRef = push(eventsRef);
@@ -502,7 +611,7 @@ async function saveEvent(uid, eventData) {
         return newEventRef.key;
     } catch (err) {
         if (err.message && err.message.includes('PERMISSION_DENIED')) {
-            alert('❌ Permission denied to save event.\n\nPlease update your Firebase Realtime Database security rules:\n\n{\n  "rules": {\n    "events": {\n      "$uid": {\n        ".read": "$uid === auth.uid",\n        ".write": "$uid === auth.uid"\n      }\n    }\n  }\n}\n\nTo fix:\n1. Go to Firebase Console → Realtime Database → Rules\n2. Paste the rules above\n3. Click Publish');
+            alert('❌ Permission denied to save event. Please check Firebase security rules.');
         } else {
             alert('Error saving event: ' + err.message);
         }
@@ -510,16 +619,13 @@ async function saveEvent(uid, eventData) {
     }
 }
 
-// ============================================================
-// UPDATE EVENT - IMPROVED ERROR HANDLING
-// ============================================================
 async function updateEvent(uid, eventKey, eventData) {
     const eventRef = ref(database, `events/${uid}/${eventKey}`);
     try {
         await update(eventRef, eventData);
     } catch (err) {
         if (err.message && err.message.includes('PERMISSION_DENIED')) {
-            alert('❌ Permission denied to update event. Please check your Firebase security rules.');
+            alert('❌ Permission denied to update event. Please check Firebase security rules.');
         } else {
             alert('Error updating event: ' + err.message);
         }
@@ -527,16 +633,13 @@ async function updateEvent(uid, eventKey, eventData) {
     }
 }
 
-// ============================================================
-// DELETE EVENT - IMPROVED ERROR HANDLING
-// ============================================================
 async function deleteEvent(uid, eventKey) {
     const eventRef = ref(database, `events/${uid}/${eventKey}`);
     try {
         await remove(eventRef);
     } catch (err) {
         if (err.message && err.message.includes('PERMISSION_DENIED')) {
-            alert('❌ Permission denied to delete event. Please check your Firebase security rules.');
+            alert('❌ Permission denied to delete event. Please check Firebase security rules.');
         } else {
             alert('Error deleting event: ' + err.message);
         }
@@ -544,9 +647,6 @@ async function deleteEvent(uid, eventKey) {
     }
 }
 
-// ============================================================
-// CALENDAR HELPER FUNCTIONS
-// ============================================================
 function getEventsForDate(date) {
     const dateStr = date.toISOString().split('T')[0];
     const results = [];
@@ -724,7 +824,6 @@ function renderEventsForDate(date) {
                     await deleteEvent(userData.uid, key);
                     loadEvents(userData.uid);
                 } catch (err) {
-                    // Error already handled in deleteEvent
                     console.error(err);
                 }
             }
@@ -764,9 +863,6 @@ document.getElementById('todayBtn').addEventListener('click', () => {
     renderCalendar();
 });
 
-// ============================================================
-// SAVE EVENT BUTTON - IMPROVED ERROR HANDLING
-// ============================================================
 document.getElementById('saveEventBtn').addEventListener('click', async () => {
     const userData = getUserLocally();
     if (!userData.uid) { alert('Please login first.'); return; }
@@ -782,7 +878,6 @@ document.getElementById('saveEventBtn').addEventListener('click', async () => {
 
     const eventData = { date, title, description, time, type };
 
-    // Disable button to prevent double-click
     const saveBtn = document.getElementById('saveEventBtn');
     saveBtn.disabled = true;
     saveBtn.textContent = '⏳ Saving...';
@@ -803,7 +898,6 @@ document.getElementById('saveEventBtn').addEventListener('click', async () => {
         alert(editingEventKey ? 'Event updated!' : 'Event saved!');
         editingEventKey = null;
     } catch (err) {
-        // Error already handled in saveEvent/updateEvent
         console.error(err);
     } finally {
         saveBtn.disabled = false;
@@ -812,9 +906,6 @@ document.getElementById('saveEventBtn').addEventListener('click', async () => {
     }
 });
 
-// ============================================================
-// DELETE EVENT BUTTON (from modal)
-// ============================================================
 document.getElementById('deleteEventBtn').addEventListener('click', async () => {
     if (!editingEventKey) return;
     const userData = getUserLocally();
@@ -828,7 +919,6 @@ document.getElementById('deleteEventBtn').addEventListener('click', async () => 
             if (selectedDate) renderEventsForDate(selectedDate);
             editingEventKey = null;
         } catch (err) {
-            // Error already handled in deleteEvent
             console.error(err);
         }
     }
@@ -924,15 +1014,17 @@ function getBotReply(input) {
     if (lower.includes('contact') || lower.includes('phone'))
         return '📞 Phone: 071 455 5513 | Email: info@ictfromabc.com';
     if (lower.includes('profile') || lower.includes('update'))
-        return '👤 Update your profile from the Profile section.';
+        return '👤 Update your profile from the Profile section. You can also upload a profile photo!';
     if (lower.includes('otp') || lower.includes('password') || lower.includes('reset'))
         return '🔑 Use "Forgot Password" to reset with OTP.';
     if (lower.includes('institute') || lower.includes('school') || lower.includes('academy'))
         return '🏫 We partner with Sakya Academy, Yahansa, Nanik, Sipwin, and IMS Kandy. Check the Institutes section!';
     if (lower.includes('calendar') || lower.includes('event') || lower.includes('task'))
         return '📅 Use the Calendar section to add work hours, tasks, and class dates. You can search and manage all your events!';
+    if (lower.includes('photo') || lower.includes('profile picture') || lower.includes('avatar'))
+        return '📷 You can upload a profile photo in the Profile section. Click the camera icon on your profile picture to upload.';
     if (lower.includes('permission') || lower.includes('error') || lower.includes('denied'))
-        return '🔐 If you see a permission error, check your Firebase security rules. They should allow authenticated users to read/write their own data under events/{uid}.';
+        return '🔐 If you see a permission error, check your Firebase security rules. They should allow authenticated users to read/write their own data.';
     return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar events, and profile updates.';
 }
 
@@ -956,45 +1048,10 @@ document.addEventListener('click', (e) => {
 });
 
 // ============================================================
-// HANDLE PERMISSION DENIED - SHOW HELPFUL MESSAGE
-// ============================================================
-// This function is called from the error handlers above
-function showPermissionHelp() {
-    alert(`
-🔐 Firebase Permission Denied
-
-To fix this, update your Realtime Database security rules:
-
-1. Go to Firebase Console → Realtime Database → Rules
-2. Replace with:
-
-{
-  "rules": {
-    "users": {
-      "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid"
-      }
-    },
-    "events": {
-      "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid"
-      }
-    }
-  }
-}
-
-3. Click "Publish"
-4. Try again!
-    `);
-}
-
-// ============================================================
 // INIT
 // ============================================================
 console.log('🔥 Firebase connected!');
 console.log('📊 Google Sheets notification system ready.');
 console.log('📅 Calendar system ready with Firebase storage.');
-console.log('🔍 Search events by title, description, date, or type.');
-console.log('📌 If you see "PERMISSION_DENIED", check Firebase security rules.');
+console.log('📷 Profile photo upload ready. Click the camera icon to upload.');
+console.log('📱 Responsive UI auto-detects phone, tablet, and desktop.');
