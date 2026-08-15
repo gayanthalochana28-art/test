@@ -579,18 +579,20 @@ textarea {
     opacity: 1;
     transform: scale(1.1);
 }
-#editNotifBtn {
+.admin-btn {
     background: rgba(255,255,255,0.15);
-    border: none;
+    border: 1px solid rgba(255,255,255,0.2);
     color: white;
-    padding: 4px 12px;
+    padding: 4px 14px;
     border-radius: 40px;
     font-size: 0.7rem;
     cursor: pointer;
     transition: 0.2s;
+    font-weight: 600;
 }
-#editNotifBtn:hover {
+.admin-btn:hover {
     background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.4);
 }
 /* Sidebar */
 .sidebar {
