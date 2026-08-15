@@ -8,8 +8,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ictfromabc · Student Portal</title>
     <!-- Favicon / Website DP -->
-    <link rel="icon" href="logo.png" type="image/png" />
-    <link rel="apple-touch-icon" href="logo.png" />
+    <link rel="icon" href="loginpc.png" type="image/png" />
+    <link rel="apple-touch-icon" href="loginmb.png" />
     <!-- Font preloads -->
     <link rel="preload" href="/_next/static/immutable/media/47fe1b7cd6e6ed85-s.p.1n2oi-d4a-xww.woff2" as="font" crossorigin="" type="font/woff2" />
     <link rel="preload" href="/_next/static/immutable/media/829ba4228c966254-s.p.0zvxjg5nywxta.woff2" as="font" crossorigin="" type="font/woff2" />
@@ -18,8 +18,8 @@
     <link rel="preload" href="/_next/static/immutable/media/e2334d715941921e-s.p.2g9xiodaln20i.woff2" as="font" crossorigin="" type="font/woff2" />
     <link rel="preload" href="loginmb.png" as="image" />
     <link rel="preload" href="loginpc.png" as="image" />
-    <link rel="preload" href="loginmb.png" as="image" />
-    <link rel="preload" href="loginmb.png" as="image" />
+    <link rel="preload" href="logo.png" as="image" />
+    <link rel="preload" href="Profile.png" as="image" />
     <!-- Firebase SDK -->
     <script type="importmap">
         {
@@ -115,6 +115,8 @@
                 <span class="notification-icon">🔔</span>
                 <span id="notificationText">Welcome to ictfromabc! Stay tuned for updates.</span>
                 <button class="notification-close" onclick="this.parentElement.parentElement.style.display='none'">✕</button>
+                <!-- Admin Edit Button (only visible to logged in admin) -->
+                <button id="editNotifBtn" style="background:rgba(255,255,255,0.15);border:none;color:white;padding:4px 10px;border-radius:40px;font-size:0.7rem;cursor:pointer;">✏️ Edit</button>
             </div>
         </div>
 
@@ -307,6 +309,17 @@
     <div id="changePassModal" class="modal-overlay"><div class="modal-card"><h2>🔐 Change Password</h2><label>New Password</label><input type="password" id="newPass" /><button class="home-btn" id="changePassBtn">Update</button><p style="color:#888;font-size:0.8rem;margin-top:0.8rem;cursor:pointer;" onclick="closeModal('changePassModal')">✕ close</p></div></div>
 
     <div id="profileModal" class="modal-overlay"><div class="modal-card"><h2>✏️ Edit Full Profile</h2><label>Full Name</label><input type="text" id="editFullName" /><label>Address</label><input type="text" id="editAddress" /><label>Phone Number</label><input type="text" id="editPhone" /><label>WhatsApp Number</label><input type="text" id="editWhatsApp" /><label>A/L Subject</label><input type="text" id="editSubject" placeholder="e.g. ICT, Physics" /><label>School</label><input type="text" id="editSchool" /><label>Birthday</label><input type="date" id="editBirthday" /><label>NIC Number</label><input type="text" id="editNic" /><label>Institute</label><input type="text" id="editInstitute" /><label>Profile Photo URL</label><input type="text" id="editPhoto" placeholder="Profile.png" value="Profile.png" /><button class="home-btn" id="saveProfileBtn">Save Profile</button><p style="color:#888;font-size:0.8rem;margin-top:0.8rem;cursor:pointer;" onclick="closeModal('profileModal')">✕ close</p></div></div>
+
+    <!-- Edit Notification Modal -->
+    <div id="editNotifModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2>✏️ Edit Notification</h2>
+            <label>Notification Message</label>
+            <input type="text" id="notifInput" placeholder="Enter new message..." style="width:100%;padding:0.8rem 1.2rem;border-radius:40px;border:1px solid #333;background:#1a1a1a;color:white;outline:none;" />
+            <button class="home-btn" id="saveNotifBtn" style="margin-top:0.5rem;">Save</button>
+            <p style="color:#888;font-size:0.8rem;margin-top:0.8rem;cursor:pointer;" onclick="closeModal('editNotifModal')">✕ close</p>
+        </div>
+    </div>
 
     <!-- ===== CHATBOT ===== -->
     <button class="chatbot-toggle pulse-glow" id="chatToggle">💬 AI Assistant</button>
