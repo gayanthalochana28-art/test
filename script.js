@@ -227,9 +227,9 @@ function loadLocalNotices() {
     } else {
         if (localNotices.length === 0) {
             const demos = [
-                { text: '📌 Welcome to the new ictfromabc Student Portal!', time: '📅 Posted: Today, 9:00 AM', source: 'local' },
-                { text: '📌 New practical sessions starting next week. Check the schedule.', time: '📅 Posted: Yesterday, 6:30 PM', source: 'local' },
-                { text: '📌 A/L 2026 past papers updated. Download from the portal.', time: '📅 Posted: 2 days ago', source: 'local' }
+                { text: '' },
+                { text: '', source: 'local' },
+                { text: '', time: '📅 Posted: 2 days ago', source: 'local' }
             ];
             localNotices = demos;
             localStorage.setItem('ict_local_notices', JSON.stringify(localNotices));
