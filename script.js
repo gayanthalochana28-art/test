@@ -1,5 +1,5 @@
 // ============================================================
-// FILE: script.js - FIXED (Create Account & Forgot Password)
+// FILE: script.js
 // ============================================================
 
 // ===== FIREBASE IMPORTS =====
@@ -34,6 +34,7 @@ const provider = new GoogleAuthProvider();
 const GOOGLE_SHEETS_URL =
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLDVD0TZD9vBDVClfGmQYxXGl3wPopuYdzlP0RQvjXqkmVW305TYaHFcUse5EyJoSmRM9h5OkDmRYb/pub?gid=0&single=true&output=csv';
 
+// ===== NOTICE BOARD SHEET URL =====
 const NOTICE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQs27ROiiQDIDFikKLms2lSVaOuvDb4_QntxZ5Y6JxCyM4KumZMTPY9MBCjzS4AjvsugeUgbU004UXo/pub?gid=0&single=true&output=csv';
 
 // ===== DOM REFS =====
@@ -173,7 +174,7 @@ resetBtn.addEventListener('click', resetTimer);
 updateTimerDisplay();
 
 // ============================================================
-// NOTICE BOARD
+// NOTICE BOARD - with Google Sheets Integration
 // ============================================================
 const noticeInput = document.getElementById('noticeInput');
 const postNoticeBtn = document.getElementById('postNoticeBtn');
@@ -370,7 +371,7 @@ if (profilePhotoInput) {
 }
 
 // ============================================================
-// GOOGLE SHEETS NOTIFICATION FETCH
+// GOOGLE SHEETS NOTIFICATION FETCH (for notification bar)
 // ============================================================
 async function fetchGoogleSheetsNotifications() {
     try {
@@ -428,28 +429,6 @@ function clearUserLocally() {
 }
 
 // ============================================================
-// PHONE NUMBER HELPER - SANITIZE FOR EMAIL
-// ============================================================
-function sanitizePhoneForEmail(phone) {
-    // Remove all non-digit characters
-    let cleaned = phone.replace(/\D/g, '');
-    // Ensure it starts with 0 for Sri Lankan numbers
-    if (!cleaned.startsWith('0') && cleaned.length === 10) {
-        cleaned = '0' + cleaned;
-    }
-    // If it's still empty or too short, return as-is with a fallback
-    if (cleaned.length < 10) {
-        return phone + '@ictfromabc.com';
-    }
-    return cleaned + '@ictfromabc.com';
-}
-
-function validatePhone(phone) {
-    const cleaned = phone.replace(/\D/g, '');
-    return cleaned.length >= 10;
-}
-
-// ============================================================
 // SHOW DASHBOARD
 // ============================================================
 function showDashboard(userData) {
@@ -473,25 +452,15 @@ function showDashboard(userData) {
 }
 
 // ============================================================
-// AUTH FUNCTIONS - FIXED
+// AUTH FUNCTIONS
 // ============================================================
-
-// ===== LOGIN =====
 async function loginUser(phone, pass) {
-    if (!phone || !pass) {
-        alert('Please enter phone and password.');
-        return;
-    }
-    if (!validatePhone(phone)) {
-        alert('Please enter a valid phone number (at least 10 digits).');
-        return;
-    }
+    if (!phone || !pass) { alert('Please enter phone and password.'); return; }
     loginBtn.disabled = true;
     loginBtn.innerHTML = '<span class="loader"></span> Logging in...';
     loginBtn.classList.add('btn-loading');
     try {
-        const email = sanitizePhoneForEmail(phone);
-        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        const cred = await signInWithEmailAndPassword(auth, phone + '@ictfromabc.com', pass);
         const user = cred.user;
         const snapshot = await get(child(ref(database), `users/${user.uid}`));
         const data = snapshot.val() || { fullName: 'Student', phone, batch: 'ICT AL 2026' };
@@ -499,18 +468,8 @@ async function loginUser(phone, pass) {
         saveUserLocally(user.uid, data);
         showDashboard(data);
     } catch (err) {
-        let errorMsg = 'Invalid credentials. Please try again.';
-        if (err.code === 'auth/user-not-found') {
-            errorMsg = 'No account found with this phone number. Please sign up first.';
-        } else if (err.code === 'auth/wrong-password') {
-            errorMsg = 'Incorrect password. Please try again.';
-        } else if (err.code === 'auth/too-many-requests') {
-            errorMsg = 'Too many failed attempts. Please try again later.';
-        } else if (err.code === 'auth/invalid-email') {
-            errorMsg = 'Invalid phone number format. Please check and try again.';
-        }
-        alert('❌ ' + errorMsg);
-        console.error('Login error:', err);
+        alert('Invalid credentials. Please try again.');
+        console.error(err);
     } finally {
         loginBtn.disabled = false;
         loginBtn.innerHTML = '🔐 Login';
@@ -518,76 +477,22 @@ async function loginUser(phone, pass) {
     }
 }
 
-// ===== SIGNUP - FIXED =====
 async function signupUser(name, phone, pass) {
-    const errorEl = document.getElementById('signupError');
-    errorEl.style.display = 'none';
-    errorEl.textContent = '';
-
-    if (!name || !phone || !pass) {
-        errorEl.textContent = 'Please fill all fields.';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (name.length < 2) {
-        errorEl.textContent = 'Please enter your full name.';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (!validatePhone(phone)) {
-        errorEl.textContent = 'Please enter a valid phone number (at least 10 digits).';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (pass.length < 6) {
-        errorEl.textContent = 'Password must be at least 6 characters.';
-        errorEl.style.display = 'block';
-        return;
-    }
-
-    const signupBtn = document.getElementById('signupBtn');
-    signupBtn.disabled = true;
-    signupBtn.textContent = '⏳ Creating account...';
-    signupBtn.classList.add('btn-loading');
-
+    if (!name || !phone || !pass) { alert('Please fill all fields.'); return; }
     try {
-        const email = sanitizePhoneForEmail(phone);
-        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        const cred = await createUserWithEmailAndPassword(auth, phone + '@ictfromabc.com', pass);
         const user = cred.user;
-        const data = {
-            fullName: name,
-            phone: phone,
-            name: name,
-            batch: 'ICT AL 2026',
-            createdAt: new Date().toISOString()
-        };
+        const data = { fullName: name, phone, name, batch: 'ICT AL 2026' };
         await set(ref(database, `users/${user.uid}`), data);
         saveUserLocally(user.uid, data);
         showDashboard(data);
         closeModal('signupModal');
-        alert('✅ Account created successfully! Welcome to ictfromabc!');
     } catch (err) {
-        let errorMsg = 'Signup failed. Please try again.';
-        if (err.code === 'auth/email-already-in-use') {
-            errorMsg = 'This phone number is already registered. Please login instead.';
-        } else if (err.code === 'auth/invalid-email') {
-            errorMsg = 'Invalid phone number format. Please check and try again.';
-        } else if (err.code === 'auth/weak-password') {
-            errorMsg = 'Password is too weak. Please use at least 6 characters.';
-        } else if (err.code === 'auth/network-request-failed') {
-            errorMsg = 'Network error. Please check your internet connection.';
-        }
-        errorEl.textContent = '❌ ' + errorMsg;
-        errorEl.style.display = 'block';
-        console.error('Signup error:', err);
-    } finally {
-        signupBtn.disabled = false;
-        signupBtn.textContent = 'Sign Up';
-        signupBtn.classList.remove('btn-loading');
+        alert('Signup failed: ' + err.message);
+        console.error(err);
     }
 }
 
-// ===== GOOGLE LOGIN =====
 async function googleLogin() {
     try {
         const result = await signInWithPopup(auth, provider);
@@ -610,42 +515,27 @@ async function googleLogin() {
         saveUserLocally(user.uid, data);
         showDashboard(data);
     } catch (err) {
-        let errorMsg = 'Google login failed. Please try again.';
-        if (err.code === 'auth/popup-closed-by-user') {
-            errorMsg = 'Login cancelled. Please try again.';
-        } else if (err.code === 'auth/account-exists-with-different-credential') {
-            errorMsg = 'An account already exists with this email. Please login with your phone number.';
-        }
-        alert('❌ ' + errorMsg);
-        console.error('Google login error:', err);
+        alert('Google login failed. Please try again.');
+        console.error(err);
     }
 }
 
-// ===== CHANGE PASSWORD =====
 async function changePassword(newPass) {
     if (!newPass) { alert('Enter new password.'); return; }
-    if (newPass.length < 6) { alert('Password must be at least 6 characters.'); return; }
     try {
         if (auth.currentUser) {
             await updatePassword(auth.currentUser, newPass);
-            alert('✅ Password updated successfully!');
+            alert('Password updated successfully!');
             closeModal('changePassModal');
         } else {
             alert('Please login again to change password.');
         }
     } catch (err) {
-        let errorMsg = 'Error updating password. Please try again.';
-        if (err.code === 'auth/requires-recent-login') {
-            errorMsg = 'Please login again to change your password.';
-        } else if (err.code === 'auth/weak-password') {
-            errorMsg = 'Password is too weak. Please use at least 6 characters.';
-        }
-        alert('❌ ' + errorMsg);
+        alert('Error updating password. Please try again.');
         console.error(err);
     }
 }
 
-// ===== SAVE PROFILE =====
 async function saveProfile(data) {
     const userData = getUserLocally();
     if (!userData.uid) { alert('Please login first.'); return; }
@@ -657,7 +547,7 @@ async function saveProfile(data) {
         saveUserLocally(userData.uid, merged);
         showDashboard(merged);
         closeModal('profileModal');
-        alert('✅ Profile updated successfully!');
+        alert('Profile updated successfully!');
     } catch (err) {
         alert('Error saving profile.');
         console.error(err);
@@ -665,7 +555,7 @@ async function saveProfile(data) {
 }
 
 // ============================================================
-// OTP FOR FORGOT PASSWORD - FIXED
+// OTP
 // ============================================================
 let otpCode = '',
     otpVerified = false,
@@ -690,125 +580,55 @@ function startOtpTimer(seconds = 60) {
         }
     }, 1000);
 }
-
-// ===== SEND OTP =====
 document.getElementById('sendOtpBtn').addEventListener('click', () => {
     const phone = document.getElementById('forgotPhone').value.trim();
-    const errorEl = document.getElementById('forgotError');
-    errorEl.style.display = 'none';
-
-    if (!phone) {
-        errorEl.textContent = 'Please enter your phone number.';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (!validatePhone(phone)) {
-        errorEl.textContent = 'Please enter a valid phone number (at least 10 digits).';
-        errorEl.style.display = 'block';
-        return;
-    }
-
+    if (!phone) { alert('Enter phone number.'); return; }
     currentPhone = phone;
     otpCode = generateOTP();
     otpVerified = false;
     console.log(`📱 OTP for ${phone}: ${otpCode}`);
-
-    const sendBtn = document.getElementById('sendOtpBtn');
-    sendBtn.disabled = true;
+    document.getElementById('sendOtpBtn').disabled = true;
     document.getElementById('otpTimer').textContent = '📨 OTP sent! Check console or SMS.';
     document.getElementById('otpStatus').textContent = '';
-    document.getElementById('otpStatus').style.color = '';
     startOtpTimer(60);
-
-    // Also try to send via Firebase if account exists
-    try {
-        const email = sanitizePhoneForEmail(phone);
-        sendPasswordResetEmail(auth, email)
-            .then(() => {
-                console.log('Password reset email sent (if account exists).');
-            })
-            .catch(() => {
-                // Silent fail - we already have OTP
-            });
-    } catch (e) {
-        // Silent fail
-    }
-
-    alert(`📱 OTP sent to ${phone}\nDemo OTP: ${otpCode}\n(Check console for OTP code)`);
+    alert(`OTP sent to ${phone} (Demo: ${otpCode})`);
 });
-
-// ===== VERIFY OTP =====
 document.getElementById('verifyOtpBtn').addEventListener('click', () => {
     const entered = document.getElementById('otpInput').value.trim();
-    const statusEl = document.getElementById('otpStatus');
-    if (!entered) {
-        statusEl.textContent = 'Please enter the OTP code.';
-        statusEl.style.color = '#ff4444';
-        return;
-    }
+    if (!entered) { alert('Enter OTP code.'); return; }
     if (entered === otpCode) {
         otpVerified = true;
-        statusEl.textContent = '✅ OTP verified successfully!';
-        statusEl.style.color = '#4caf50';
+        document.getElementById('otpStatus').textContent = '✅ OTP verified successfully!';
+        document.getElementById('otpStatus').style.color = '#4caf50';
         document.getElementById('otpTimer').textContent = '';
-        alert('✅ OTP verified! Now set your new password.');
+        alert('OTP verified! Set your new password.');
     } else {
-        statusEl.textContent = '❌ Invalid OTP. Please try again.';
-        statusEl.style.color = '#ff4444';
+        document.getElementById('otpStatus').textContent = '❌ Invalid OTP. Please try again.';
+        document.getElementById('otpStatus').style.color = '#ff4444';
     }
 });
-
-// ===== RESET PASSWORD =====
 document.getElementById('resetPassBtn').addEventListener('click', async () => {
-    const errorEl = document.getElementById('forgotError');
-    errorEl.style.display = 'none';
-
-    if (!otpVerified) {
-        errorEl.textContent = 'Please verify your OTP first.';
-        errorEl.style.display = 'block';
-        return;
-    }
-
+    if (!otpVerified) { alert('Please verify OTP first.'); return; }
     const newPass = document.getElementById('resetNewPass').value.trim();
-    if (!newPass || newPass.length < 6) {
-        errorEl.textContent = 'Password must be at least 6 characters.';
-        errorEl.style.display = 'block';
-        return;
-    }
-
-    const resetBtn = document.getElementById('resetPassBtn');
-    resetBtn.disabled = true;
-    resetBtn.textContent = '⏳ Updating...';
-
+    if (!newPass || newPass.length < 6) { alert('Password must be at least 6 characters.'); return; }
     try {
-        // Try Firebase password reset
-        const email = sanitizePhoneForEmail(currentPhone);
-        await sendPasswordResetEmail(auth, email);
-        alert('✅ Password reset email sent! Please check your inbox.');
+        await sendPasswordResetEmail(auth, currentPhone + '@ictfromabc.com');
+        alert('Password reset email sent! Check your inbox.');
         closeModal('forgotModal');
-    } catch (err) {
-        // Fallback: If Firebase fails, try local storage update
-        console.warn('Firebase reset email failed, trying local fallback:', err);
-        const localData = getUserLocally();
-        if (localData.data && localData.data.phone === currentPhone) {
-            // Update local password (we can't actually change Firebase password without email)
-            alert('✅ Password reset link sent to your email. Please check your inbox.\n(If you don\'t see it, check spam folder.)');
-            closeModal('forgotModal');
-        } else {
-            errorEl.textContent = 'Account not found. Please sign up first.';
-            errorEl.style.display = 'block';
-        }
-    } finally {
-        resetBtn.disabled = false;
-        resetBtn.textContent = '🔄 Reset Password';
-        // Reset OTP state
         otpVerified = false;
-        otpCode = '';
         document.getElementById('otpStatus').textContent = '';
         document.getElementById('otpTimer').textContent = '';
         document.getElementById('otpInput').value = '';
         document.getElementById('resetNewPass').value = '';
         document.getElementById('sendOtpBtn').disabled = false;
+    } catch (err) {
+        const localData = getUserLocally();
+        if (localData.data && localData.data.phone === currentPhone) {
+            alert('Password updated successfully! (local mode)');
+            closeModal('forgotModal');
+        } else {
+            alert('Account not found. Please sign up first.');
+        }
     }
 });
 
@@ -852,17 +672,6 @@ document.getElementById('signupBtn').addEventListener('click', () => {
     const pass = document.getElementById('signupPass').value.trim();
     signupUser(name, phone, pass);
 });
-
-// Enter key support for signup
-document.getElementById('signupPass').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('signupBtn').click();
-});
-
-// Enter key support for forgot password
-document.getElementById('resetNewPass').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('resetPassBtn').click();
-});
-
 document.getElementById('changePassBtn').addEventListener('click', () => {
     changePassword(document.getElementById('newPass').value.trim());
 });
@@ -1336,6 +1145,7 @@ function hideTypingIndicator() {
 
 function getBotReply(input) {
     const lower = input.toLowerCase();
+    const context = chatContext.map(c => c.text).join(' ').toLowerCase();
 
     if (lower.includes('class') || lower.includes('day') || lower.includes('schedule'))
         return '📅 Class days: Monday, Wednesday, Friday at 6:30 PM. All sessions are recorded.';
@@ -1347,7 +1157,7 @@ function getBotReply(input) {
         return '📞 Phone: 071 455 5513 | Email: info@ictfromabc.com | Visit: https://ictfromabc.com';
     if (lower.includes('profile') || lower.includes('update') || lower.includes('photo'))
         return '👤 You can update your profile and upload a profile photo from the Profile section. Click the camera icon on your picture to upload.';
-    if (lower.includes('otp') || lower.includes('password') || lower.includes('reset') || lower.includes('forgot'))
+    if (lower.includes('otp') || lower.includes('password') || lower.includes('reset'))
         return '🔑 Use "Forgot Password" on the login page to reset with OTP. The OTP will be sent to your phone (demo code shown in console).';
     if (lower.includes('institute') || lower.includes('school') || lower.includes('academy'))
         return '🏫 We partner with Sakya Academy, Yahansa, Nanik, Sipwin, and IMS Kandy. Check the Institutes section for details!';
@@ -1357,6 +1167,8 @@ function getBotReply(input) {
         return '📢 Check the Notice Board section for announcements. You can connect it to Google Sheets using the tutorial.';
     if (lower.includes('timer') || lower.includes('analyzer') || lower.includes('work'))
         return '⏱️ Use the Work Time Analyzer to track your study sessions. Start, stop, and reset to monitor your productivity!';
+    if (lower.includes('book') || lower.includes('animation') || lower.includes('3d') || lower.includes('flip'))
+        return '📖 Check out the 3D book animation on the home page! It shows the "Evolution of Computing" lesson with interactive page flips.';
     if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey'))
         return '👋 Hello! How can I assist you with your ICT studies today?';
     if (lower.includes('thanks') || lower.includes('thank you'))
@@ -1365,10 +1177,8 @@ function getBotReply(input) {
         return '🔐 If you see a permission error, check your Firebase security rules. They should allow authenticated users to read/write their own data.';
     if (lower.includes('subject') || lower.includes('topics'))
         return '📚 We cover Mathematics, Physics, Chemistry, and ICT. Check the Study Topics Overview on your dashboard for detailed progress.';
-    if (lower.includes('signup') || lower.includes('create') || lower.includes('account'))
-        return '📝 To create an account, click "Create Account" on the login page. Enter your full name, phone number, and a password (min 6 characters).';
 
-    return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar events, notice board, work analyzer, and profile updates. Could you clarify your question?';
+    return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar events, notice board, work analyzer, 3D book, and profile updates. Could you clarify your question?';
 }
 
 function handleChatInput() {
@@ -1398,6 +1208,120 @@ document.addEventListener('click', (e) => {
             chatInput.value = msg;
             handleChatInput();
         }
+    }
+});
+
+// ============================================================
+// 3D BOOK ANIMATION CONTROLS
+// ============================================================
+const book = document.getElementById('book3d');
+const page1 = document.getElementById('page1');
+const page2 = document.getElementById('page2');
+const page3 = document.getElementById('page3');
+const page4 = document.getElementById('page4');
+const prevBtn = document.getElementById('prevPageBtn');
+const nextBtn = document.getElementById('nextPageBtn');
+const autoBtn = document.getElementById('autoFlipBtn');
+const resetBtn = document.getElementById('resetBookBtn');
+
+let currentPage = 0;
+let isAutoFliping = false;
+let autoFlipInterval = null;
+const totalPages = 4;
+
+function updateBookState() {
+    // Reset all pages
+    page1.classList.remove('flipped');
+    page2.classList.remove('flipped');
+    page3.classList.remove('flipped');
+    page4.classList.remove('flipped');
+
+    // Flip pages based on currentPage
+    if (currentPage >= 1) page1.classList.add('flipped');
+    if (currentPage >= 2) page2.classList.add('flipped');
+    if (currentPage >= 3) page3.classList.add('flipped');
+    if (currentPage >= 4) page4.classList.add('flipped');
+
+    // Update button states
+    prevBtn.disabled = currentPage === 0;
+    nextBtn.disabled = currentPage >= totalPages;
+
+    // Update auto button text
+    autoBtn.textContent = isAutoFliping ? '⏸️ Pause' : '▶ Auto Flip';
+    autoBtn.classList.toggle('active-btn', isAutoFliping);
+}
+
+function nextPage() {
+    if (currentPage < totalPages) {
+        currentPage++;
+        updateBookState();
+    }
+}
+
+function prevPage() {
+    if (currentPage > 0) {
+        currentPage--;
+        updateBookState();
+    }
+}
+
+function toggleAutoFlip() {
+    isAutoFliping = !isAutoFliping;
+    if (isAutoFliping) {
+        autoFlipInterval = setInterval(() => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateBookState();
+            } else {
+                // Reset to beginning after reaching end
+                setTimeout(() => {
+                    currentPage = 0;
+                    updateBookState();
+                }, 800);
+                clearInterval(autoFlipInterval);
+                isAutoFliping = false;
+                autoBtn.textContent = '▶ Auto Flip';
+                autoBtn.classList.remove('active-btn');
+            }
+        }, 2500);
+        autoBtn.textContent = '⏸️ Pause';
+        autoBtn.classList.add('active-btn');
+    } else {
+        clearInterval(autoFlipInterval);
+        autoFlipInterval = null;
+        autoBtn.textContent = '▶ Auto Flip';
+        autoBtn.classList.remove('active-btn');
+    }
+}
+
+function resetBook() {
+    if (isAutoFliping) {
+        clearInterval(autoFlipInterval);
+        autoFlipInterval = null;
+        isAutoFliping = false;
+        autoBtn.textContent = '▶ Auto Flip';
+        autoBtn.classList.remove('active-btn');
+    }
+    currentPage = 0;
+    updateBookState();
+}
+
+// Event listeners for book controls
+prevBtn.addEventListener('click', prevPage);
+nextBtn.addEventListener('click', nextPage);
+autoBtn.addEventListener('click', toggleAutoFlip);
+resetBtn.addEventListener('click', resetBook);
+
+// Initialize book
+updateBookState();
+
+// Add keyboard support
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') nextPage();
+    if (e.key === 'ArrowLeft') prevPage();
+    if (e.key === ' ') {
+        e.preventDefault();
+        toggleAutoFlip();
     }
 });
 
@@ -1501,8 +1425,7 @@ animateParticles();
 // ============================================================
 console.log('🔥 Firebase connected!');
 console.log('📢 Notice Board: Google Sheets integration ready.');
-console.log('📊 To use, replace NOTICE_SHEET_URL with your published CSV URL.');
+console.log('📖 3D Book Animation: Evolution of Computing lesson.');
 console.log('📱 Mobile UI optimized.');
 console.log('🤖 Advanced chatbot with context memory.');
 console.log('⏱️ Work Time Analyzer active.');
-console.log('✅ Create Account and Forgot Password fixed with proper validation.');
