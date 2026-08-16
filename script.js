@@ -1,5 +1,5 @@
 // ============================================================
-// FILE: script.js (Advanced Chatbot + Mobile UI + Photo Upload)
+// FILE: script.js
 // ============================================================
 
 // ===== FIREBASE IMPORTS =====
@@ -28,8 +28,14 @@ const database = getDatabase(app);
 const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 
-// ===== GOOGLE SHEETS NOTIFICATION =====
-const GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLDVD0TZD9vBDVClfGmQYxXGl3wPopuYdzlP0RQvjXqkmVW305TYaHFcUse5EyJoSmRM9h5OkDmRYb/pub?gid=0&single=true&output=csv';
+// ============================================================
+// GOOGLE SHEETS - NOTIFICATIONS & NOTICE BOARD
+// ============================================================
+const GOOGLE_SHEETS_URL =
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLDVD0TZD9vBDVClfGmQYxXGl3wPopuYdzlP0RQvjXqkmVW305TYaHFcUse5EyJoSmRM9h5OkDmRYb/pub?gid=0&single=true&output=csv';
+
+// ===== NOTICE BOARD SHEET URL (change this to your own sheet) =====
+const NOTICE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQs27ROiiQDIDFikKLms2lSVaOuvDb4_QntxZ5Y6JxCyM4KumZMTPY9MBCjzS4AjvsugeUgbU004UXo/pub?gid=0&single=true&output=csv';
 
 // ===== DOM REFS =====
 const authScreen = document.getElementById('authScreen');
@@ -54,70 +60,265 @@ const uploadStatus = document.getElementById('uploadStatus');
 const notifBar = document.getElementById('notificationBar');
 const notifMarquee = document.getElementById('notifMarquee');
 
-// Calendar
-let currentDate = new Date();
-let currentMonth = currentDate.getMonth();
-let currentYear = currentDate.getFullYear();
-let selectedDate = null;
-let eventsCache = {};
-let editingEventKey = null;
+// ===== GREETING POPUP =====
+const greetingPopup = document.getElementById('greetingPopup');
+const greetingIcon = document.getElementById('greetingIcon');
+const greetingTitle = document.getElementById('greetingTitle');
+const greetingName = document.getElementById('greetingName');
+const greetingSub = document.getElementById('greetingSub');
+const greetingTime = document.getElementById('greetingTime');
 
-const calendarGrid = document.getElementById('calendarGrid');
-const calendarMonthYear = document.getElementById('calendarMonthYear');
-const eventList = document.getElementById('eventList');
-const eventSearchInput = document.getElementById('eventSearchInput');
+function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return { emoji: '🌅', text: 'Good Morning' };
+    if (hour < 17) return { emoji: '☀️', text: 'Good Afternoon' };
+    if (hour < 20) return { emoji: '🌇', text: 'Good Evening' };
+    return { emoji: '🌙', text: 'Good Night' };
+}
 
-// ===== GOOGLE SHEETS NOTIFICATION FETCH =====
-async function fetchGoogleSheetsNotifications() {
+function showGreeting(name) {
+    const greet = getGreeting();
+    greetingIcon.textContent = greet.emoji;
+    greetingName.textContent = name || 'Student';
+    greetingTitle.innerHTML = `${greet.text}, <span id="greetingName">${name || 'Student'}</span>!`;
+    const now = new Date();
+    greetingSub.textContent = `Welcome to ictfromabc`;
+    greetingTime.textContent =
+        `⏰ ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    greetingPopup.classList.add('active');
+}
+window.closeGreeting = function() {
+    greetingPopup.classList.remove('active');
+};
+
+// ============================================================
+// WORK TIME ANALYZER
+// ============================================================
+let timerInterval = null;
+let seconds = 0;
+let totalSeconds = parseInt(localStorage.getItem('ict_total_seconds') || '0');
+let sessionCount = parseInt(localStorage.getItem('ict_session_count') || '0');
+let isRunning = false;
+
+const timerDisplay = document.getElementById('timerDisplay');
+const totalTimeDisplay = document.getElementById('totalTimeDisplay');
+const sessionCountDisplay = document.getElementById('sessionCount');
+const startBtn = document.getElementById('startTimerBtn');
+const stopBtn = document.getElementById('stopTimerBtn');
+const resetBtn = document.getElementById('resetTimerBtn');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+
+function formatTime(sec) {
+    const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+    const s = String(sec % 60).padStart(2, '0');
+    return `${h}:${m}:${s}`;
+}
+
+function updateTimerDisplay() {
+    timerDisplay.textContent = formatTime(seconds);
+    totalTimeDisplay.textContent = formatTime(totalSeconds);
+    sessionCountDisplay.textContent = sessionCount;
+}
+
+function startTimer() {
+    if (isRunning) return;
+    isRunning = true;
+    statusDot.className = 'status-dot active';
+    statusText.textContent = '⏳ Studying...';
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    timerInterval = setInterval(() => {
+        seconds++;
+        totalSeconds++;
+        localStorage.setItem('ict_total_seconds', String(totalSeconds));
+        updateTimerDisplay();
+    }, 1000);
+}
+
+function stopTimer() {
+    if (!isRunning) return;
+    isRunning = false;
+    statusDot.className = 'status-dot inactive';
+    statusText.textContent = '⏸️ Paused';
+    clearInterval(timerInterval);
+    timerInterval = null;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    if (seconds > 0) {
+        sessionCount++;
+        localStorage.setItem('ict_session_count', String(sessionCount));
+        updateTimerDisplay();
+    }
+    seconds = 0;
+}
+
+function resetTimer() {
+    if (isRunning) stopTimer();
+    seconds = 0;
+    totalSeconds = 0;
+    sessionCount = 0;
+    localStorage.setItem('ict_total_seconds', '0');
+    localStorage.setItem('ict_session_count', '0');
+    statusDot.className = 'status-dot inactive';
+    statusText.textContent = '🔄 Reset';
+    updateTimerDisplay();
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+}
+
+startBtn.addEventListener('click', startTimer);
+stopBtn.addEventListener('click', stopTimer);
+resetBtn.addEventListener('click', resetTimer);
+updateTimerDisplay();
+
+// ============================================================
+// NOTICE BOARD - with Google Sheets Integration
+// ============================================================
+const noticeInput = document.getElementById('noticeInput');
+const postNoticeBtn = document.getElementById('postNoticeBtn');
+const noticeList = document.getElementById('noticeList');
+const refreshBtn = document.getElementById('refreshNoticesBtn');
+const clearBtn = document.getElementById('clearLocalNoticesBtn');
+
+let localNotices = [];
+
+function addLocalNotice(text) {
+    if (!text.trim()) return;
+    const now = new Date();
+    const timeStr =
+        `📅 Posted: ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const notice = { text: text.trim(), time: timeStr, source: 'local' };
+    localNotices.push(notice);
+    renderNotices();
+    noticeInput.value = '';
+    localStorage.setItem('ict_local_notices', JSON.stringify(localNotices));
+}
+
+function renderNotices() {
+    const allNotices = [...sheetNotices, ...localNotices];
+    if (allNotices.length === 0) {
+        noticeList.innerHTML =
+            `<div style="color:var(--text-gray);padding:0.5rem;text-align:center;font-size:0.85rem;">📭 No notices yet. Post one or refresh from Google Sheets.</div>`;
+        return;
+    }
+    let html = '';
+    allNotices.forEach((notice) => {
+        const sourceTag = notice.source === 'sheet' ?
+            `<span style="color:var(--primary-light);font-size:0.6rem;background:rgba(219,57,0,0.15);padding:0.1rem 0.4rem;border-radius:40px;margin-left:0.3rem;">📊 Sheet</span>` :
+            `<span style="color:var(--text-gray);font-size:0.6rem;margin-left:0.3rem;">📝 Local</span>`;
+        html += `
+            <div class="notice-item">
+                <div class="notice-text"><span class="notice-pin">📌</span> ${notice.text} ${sourceTag}</div>
+                <div class="notice-time">${notice.time}</div>
+            </div>
+        `;
+    });
+    noticeList.innerHTML = html;
+}
+
+function loadLocalNotices() {
+    const stored = localStorage.getItem('ict_local_notices');
+    if (stored) {
+        try {
+            localNotices = JSON.parse(stored);
+        } catch (e) { localNotices = []; }
+    } else {
+        if (localNotices.length === 0) {
+            const demos = [
+                { text: '📌 Welcome to the new ictfromabc Student Portal!', time: '📅 Posted: Today, 9:00 AM', source: 'local' },
+                { text: '📌 New practical sessions starting next week. Check the schedule.', time: '📅 Posted: Yesterday, 6:30 PM', source: 'local' },
+                { text: '📌 A/L 2026 past papers updated. Download from the portal.', time: '📅 Posted: 2 days ago', source: 'local' }
+            ];
+            localNotices = demos;
+            localStorage.setItem('ict_local_notices', JSON.stringify(localNotices));
+        }
+    }
+}
+
+let sheetNotices = [];
+
+async function fetchSheetNotices() {
     try {
-        const response = await fetch(GOOGLE_SHEETS_URL);
-        if (!response.ok) throw new Error('Failed to fetch');
+        if (NOTICE_SHEET_URL.includes('YOUR_SHEET_ID')) {
+            console.warn('📢 To enable Google Sheets notices, replace NOTICE_SHEET_URL with your published CSV URL.');
+            sheetNotices = [];
+            renderNotices();
+            return;
+        }
+        const response = await fetch(NOTICE_SHEET_URL);
+        if (!response.ok) throw new Error('Failed to fetch sheet');
         const csvText = await response.text();
         const lines = csvText.split('\n').filter(line => line.trim());
-        if (lines.length < 2) { notifBar.style.display = 'none'; return; }
-        const messages = [];
+        if (lines.length < 2) {
+            sheetNotices = [];
+            renderNotices();
+            return;
+        }
+        const newNotices = [];
         for (let i = 1; i < lines.length; i++) {
             const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
             if (cols.length >= 3) {
+                const timestamp = cols[0] || '';
                 const message = cols[1] || '';
-                const active = cols[2]?.toUpperCase() === 'TRUE' || cols[2]?.toUpperCase() === 'YES' || cols[2]?.toUpperCase() === '1';
-                if (active && message) messages.push(message);
+                const active = cols[2]?.toUpperCase() === 'TRUE' ||
+                    cols[2]?.toUpperCase() === 'YES' ||
+                    cols[2]?.toUpperCase() === '1';
+                if (active && message) {
+                    const timeStr = timestamp ? `📅 ${timestamp}` : '📅 Posted recently';
+                    newNotices.push({ text: message, time: timeStr, source: 'sheet' });
+                }
             }
         }
-        if (messages.length === 0) { notifBar.style.display = 'none'; return; }
-        let html = '';
-        messages.forEach(msg => { html += `<span>📢 ${msg}</span>`; });
-        notifMarquee.innerHTML = html;
-        notifBar.style.display = 'block';
-        document.body.classList.add('with-notif');
+        sheetNotices = newNotices;
+        renderNotices();
     } catch (err) {
-        console.warn('Google Sheets notification error:', err);
-        notifMarquee.innerHTML = '<span>📢 Stay updated with ictfromabc announcements!</span>';
-        notifBar.style.display = 'block';
-        document.body.classList.add('with-notif');
+        console.warn('Notice sheet error:', err);
+        sheetNotices = [];
+        renderNotices();
     }
 }
-document.getElementById('closeNotifBtn').addEventListener('click', () => {
-    notifBar.style.display = 'none';
-    document.body.classList.remove('with-notif');
+
+postNoticeBtn.addEventListener('click', () => {
+    addLocalNotice(noticeInput.value);
+});
+noticeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addLocalNotice(noticeInput.value);
 });
 
-// ===== LOCAL STORAGE =====
-function saveUserLocally(uid, data) {
-    localStorage.setItem('ict_user_uid', uid);
-    localStorage.setItem('ict_user_data', JSON.stringify(data));
-}
-function getUserLocally() {
-    const uid = localStorage.getItem('ict_user_uid');
-    const data = localStorage.getItem('ict_user_data');
-    return { uid, data: data ? JSON.parse(data) : null };
-}
-function clearUserLocally() {
-    localStorage.removeItem('ict_user_uid');
-    localStorage.removeItem('ict_user_data');
-}
+refreshBtn.addEventListener('click', async () => {
+    refreshBtn.textContent = '⏳ Loading...';
+    refreshBtn.disabled = true;
+    await fetchSheetNotices();
+    refreshBtn.textContent = '🔄 Refresh from Sheet';
+    refreshBtn.disabled = false;
+    const statusEl = document.createElement('div');
+    statusEl.style.cssText = 'color:var(--primary-light);font-size:0.7rem;margin-top:0.3rem;text-align:center;';
+    statusEl.textContent = '✅ Notices updated from Google Sheet!';
+    noticeList.parentNode.appendChild(statusEl);
+    setTimeout(() => statusEl.remove(), 2000);
+});
 
-// ===== PROFILE PHOTO UPLOAD =====
+clearBtn.addEventListener('click', () => {
+    if (confirm('Delete all local notices? (Sheet notices will remain)')) {
+        localNotices = [];
+        localStorage.removeItem('ict_local_notices');
+        renderNotices();
+    }
+});
+
+loadLocalNotices();
+fetchSheetNotices();
+
+function openTutorialModal() {
+    openModal('tutorialModal');
+}
+window.openTutorialModal = openTutorialModal;
+
+// ============================================================
+// PROFILE PHOTO UPLOAD
+// ============================================================
 function updateProfilePhoto(photoURL) {
     const url = photoURL || 'Profile.png';
     if (profileAvatarImg) profileAvatarImg.src = url;
@@ -155,9 +356,7 @@ async function uploadProfilePhoto(file) {
         updateProfilePhoto(downloadURL);
         uploadStatus.textContent = '✅ Photo updated!';
         uploadStatus.style.color = '#4caf50';
-        console.log('Profile photo uploaded:', downloadURL);
     } catch (err) {
-        console.error('Upload error:', err);
         uploadStatus.textContent = '❌ Upload failed';
         uploadStatus.style.color = '#ff4444';
         alert('Error uploading photo: ' + err.message);
@@ -171,7 +370,67 @@ if (profilePhotoInput) {
     });
 }
 
-// ===== SHOW DASHBOARD =====
+// ============================================================
+// GOOGLE SHEETS NOTIFICATION FETCH (for notification bar)
+// ============================================================
+async function fetchGoogleSheetsNotifications() {
+    try {
+        const response = await fetch(GOOGLE_SHEETS_URL);
+        if (!response.ok) throw new Error('Failed to fetch');
+        const csvText = await response.text();
+        const lines = csvText.split('\n').filter(line => line.trim());
+        if (lines.length < 2) { notifBar.style.display = 'none'; return; }
+        const messages = [];
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+            if (cols.length >= 3) {
+                const message = cols[1] || '';
+                const active = cols[2]?.toUpperCase() === 'TRUE' ||
+                    cols[2]?.toUpperCase() === 'YES' ||
+                    cols[2]?.toUpperCase() === '1';
+                if (active && message) messages.push(message);
+            }
+        }
+        if (messages.length === 0) { notifBar.style.display = 'none'; return; }
+        let html = '';
+        messages.forEach(msg => { html += `<span>📢 ${msg}</span>`; });
+        notifMarquee.innerHTML = html;
+        notifBar.style.display = 'block';
+        document.body.classList.add('with-notif');
+    } catch (err) {
+        console.warn('Google Sheets notification error:', err);
+        notifMarquee.innerHTML = '<span>📢 Stay updated with ictfromabc announcements!</span>';
+        notifBar.style.display = 'block';
+        document.body.classList.add('with-notif');
+    }
+}
+document.getElementById('closeNotifBtn').addEventListener('click', () => {
+    notifBar.style.display = 'none';
+    document.body.classList.remove('with-notif');
+});
+
+// ============================================================
+// LOCAL STORAGE HELPERS
+// ============================================================
+function saveUserLocally(uid, data) {
+    localStorage.setItem('ict_user_uid', uid);
+    localStorage.setItem('ict_user_data', JSON.stringify(data));
+}
+
+function getUserLocally() {
+    const uid = localStorage.getItem('ict_user_uid');
+    const data = localStorage.getItem('ict_user_data');
+    return { uid, data: data ? JSON.parse(data) : null };
+}
+
+function clearUserLocally() {
+    localStorage.removeItem('ict_user_uid');
+    localStorage.removeItem('ict_user_data');
+}
+
+// ============================================================
+// SHOW DASHBOARD
+// ============================================================
 function showDashboard(userData) {
     authScreen.classList.add('hidden');
     dashScreen.classList.remove('hidden');
@@ -187,9 +446,14 @@ function showDashboard(userData) {
     updateProfilePhoto(photo);
     if (userData?.uid) loadEvents(userData.uid);
     fetchGoogleSheetsNotifications();
+    setTimeout(() => {
+        showGreeting(name);
+    }, 600);
 }
 
-// ===== AUTH =====
+// ============================================================
+// AUTH FUNCTIONS
+// ============================================================
 async function loginUser(phone, pass) {
     if (!phone || !pass) { alert('Please enter phone and password.'); return; }
     loginBtn.disabled = true;
@@ -290,8 +554,13 @@ async function saveProfile(data) {
     }
 }
 
-// ===== OTP =====
-let otpCode = '', otpVerified = false, currentPhone = '', otpTimerInterval = null;
+// ============================================================
+// OTP
+// ============================================================
+let otpCode = '',
+    otpVerified = false,
+    currentPhone = '',
+    otpTimerInterval = null;
 
 function generateOTP() { return Math.floor(100000 + Math.random() * 900000).toString(); }
 
@@ -363,7 +632,9 @@ document.getElementById('resetPassBtn').addEventListener('click', async () => {
     }
 });
 
-// ===== AUTH STATE =====
+// ============================================================
+// AUTH STATE
+// ============================================================
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         const snapshot = await get(child(ref(database), `users/${user.uid}`));
@@ -383,13 +654,17 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// ===== EVENT BINDINGS (Auth) =====
+// ============================================================
+// EVENT BINDINGS (Auth)
+// ============================================================
 loginBtn.addEventListener('click', () => loginUser(loginPhone.value.trim(), loginPass.value.trim()));
 loginPass.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
 googleBtn.addEventListener('click', googleLogin);
 
-document.getElementById('signupLink').addEventListener('click', (e) => { e.preventDefault(); openModal('signupModal'); });
-document.getElementById('forgotLink').addEventListener('click', (e) => { e.preventDefault(); openModal('forgotModal'); });
+document.getElementById('signupLink').addEventListener('click', (e) => { e.preventDefault();
+    openModal('signupModal'); });
+document.getElementById('forgotLink').addEventListener('click', (e) => { e.preventDefault();
+    openModal('forgotModal'); });
 
 document.getElementById('signupBtn').addEventListener('click', () => {
     const name = document.getElementById('signupName').value.trim();
@@ -428,7 +703,9 @@ document.getElementById('saveProfileBtn').addEventListener('click', () => {
     saveProfile(data);
 });
 
-// ===== SIDEBAR NAVIGATION =====
+// ============================================================
+// SIDEBAR NAVIGATION
+// ============================================================
 document.querySelectorAll('.sidebar .nav-item[data-section]').forEach(item => {
     item.addEventListener('click', function() {
         document.querySelectorAll('.sidebar .nav-item').forEach(el => el.classList.remove('active'));
@@ -440,7 +717,9 @@ document.querySelectorAll('.sidebar .nav-item[data-section]').forEach(item => {
     });
 });
 
-// ===== LOGOUT =====
+// ============================================================
+// LOGOUT
+// ============================================================
 document.getElementById('logoutBtn').addEventListener('click', async (e) => {
     e.preventDefault();
     try { if (auth.currentUser) await signOut(auth); } catch (e) {}
@@ -448,18 +727,39 @@ document.getElementById('logoutBtn').addEventListener('click', async (e) => {
     dashScreen.classList.add('hidden');
     authScreen.classList.remove('hidden');
     notifBar.style.display = 'none';
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        isRunning = false;
+    }
 });
 
-// ===== MODAL HELPERS =====
+// ============================================================
+// MODAL HELPERS
+// ============================================================
 function openModal(id) { document.getElementById(id).classList.add('active'); }
+
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 window.openModal = openModal;
 window.closeModal = closeModal;
-document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); }));
+document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', function(e) { if (e.target === this)
+        this.classList.remove('active'); }));
 
 // ============================================================
 // CALENDAR SYSTEM
 // ============================================================
+let currentDate = new Date();
+let currentMonth = currentDate.getMonth();
+let currentYear = currentDate.getFullYear();
+let selectedDate = null;
+let eventsCache = {};
+let editingEventKey = null;
+
+const calendarGrid = document.getElementById('calendarGrid');
+const calendarMonthYear = document.getElementById('calendarMonthYear');
+const eventList = document.getElementById('eventList');
+const eventSearchInput = document.getElementById('eventSearchInput');
+
 function loadEvents(uid) {
     const eventsRef = ref(database, `events/${uid}`);
     onValue(eventsRef, (snapshot) => {
@@ -492,6 +792,7 @@ async function saveEvent(uid, eventData) {
         throw err;
     }
 }
+
 async function updateEvent(uid, eventKey, eventData) {
     const eventRef = ref(database, `events/${uid}/${eventKey}`);
     try {
@@ -505,6 +806,7 @@ async function updateEvent(uid, eventKey, eventData) {
         throw err;
     }
 }
+
 async function deleteEvent(uid, eventKey) {
     const eventRef = ref(database, `events/${uid}/${eventKey}`);
     try {
@@ -530,6 +832,7 @@ function getEventsForDate(date) {
     }
     return results;
 }
+
 function getAllEvents() {
     const results = [];
     const userData = getUserLocally();
@@ -545,7 +848,8 @@ function renderCalendar() {
     const firstDay = new Date(currentYear, currentMonth, 1).getDay();
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
-    calendarMonthYear.textContent = new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    calendarMonthYear.textContent = new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'long',
+        year: 'numeric' });
     while (calendarGrid.children.length > 7) {
         calendarGrid.removeChild(calendarGrid.lastChild);
     }
@@ -610,7 +914,8 @@ function renderEventsForDate(date) {
     const events = getEventsForDate(date);
     const dateStr = date.toISOString().split('T')[0];
     if (events.length === 0) {
-        eventList.innerHTML = `<div class="no-events">📭 No events for ${dateStr}. Click a date to add one.</div>`;
+        eventList.innerHTML =
+            `<div class="no-events">📭 No events for ${dateStr}. Click a date to add one.</div>`;
         return;
     }
     let html = '';
@@ -737,7 +1042,9 @@ document.getElementById('deleteEventBtn').addEventListener('click', async () => 
     }
 });
 
-// ===== SEARCH =====
+// ============================================================
+// SEARCH EVENTS
+// ============================================================
 document.getElementById('searchEventsBtn').addEventListener('click', () => {
     const query = eventSearchInput.value.trim().toLowerCase();
     if (!query) { if (selectedDate) renderEventsForDate(selectedDate); return; }
@@ -754,7 +1061,8 @@ document.getElementById('searchEventsBtn').addEventListener('click', () => {
     }
     const typeEmojis = { 'work': '💼', 'task': '✅', 'class': '📚', 'other': '📌' };
     const typeLabels = { 'work': 'Work', 'task': 'Task', 'class': 'Class', 'other': 'Other' };
-    let html = `<div style="margin-bottom:0.5rem;color:var(--text-gray);font-size:0.8rem;">🔍 Found ${filtered.length} results for "${query}"</div>`;
+    let html =
+        `<div style="margin-bottom:0.5rem;color:var(--text-gray);font-size:0.8rem;">🔍 Found ${filtered.length} results for "${query}"</div>`;
     filtered.forEach(event => {
         const emoji = typeEmojis[event.type] || '📌';
         const label = typeLabels[event.type] || 'Other';
@@ -779,7 +1087,7 @@ eventSearchInput.addEventListener('keydown', (e) => {
 });
 
 // ============================================================
-// ADVANCED CHATBOT WITH CONTEXT
+// CHATBOT
 // ============================================================
 const chatToggle = document.getElementById('chatToggle');
 const chatWindow = document.getElementById('chatWindow');
@@ -787,17 +1095,20 @@ const chatClose = document.getElementById('chatClose');
 const chatInput = document.getElementById('chatInput');
 const chatSend = document.getElementById('chatSend');
 const chatMessages = document.getElementById('chatMessages');
-
 let chatContext = [];
-const MAX_CONTEXT = 10;
 
 chatToggle.addEventListener('click', () => {
     chatWindow.classList.toggle('open');
-    if (chatWindow.classList.contains('open') && chatMessages.children.length === 1) {
-        // Auto-greet with user name if available
+    if (chatWindow.classList.contains('open')) {
         const userData = getUserLocally();
         if (userData.data?.fullName) {
-            addMessage(`👋 Welcome back, ${userData.data.fullName}! I'm your ICT assistant. How can I help?`, 'bot', '🤖 Assistant');
+            const lastMsg = chatMessages.lastElementChild;
+            if (lastMsg && lastMsg.classList.contains('bot') && lastMsg.innerText.includes('Hi!')) {
+                // already greeted
+            } else {
+                addMessage(`👋 Welcome back, ${userData.data.fullName}! I'm your ICT assistant. How can I help?`,
+                    'bot', '🤖 Assistant');
+            }
         }
     }
 });
@@ -814,9 +1125,8 @@ function addMessage(text, type, sender = '') {
     }
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    // Add to context
     chatContext.push({ role: type === 'user' ? 'user' : 'bot', text });
-    if (chatContext.length > MAX_CONTEXT) chatContext.shift();
+    if (chatContext.length > 10) chatContext.shift();
 }
 
 function showTypingIndicator() {
@@ -837,15 +1147,6 @@ function getBotReply(input) {
     const lower = input.toLowerCase();
     const context = chatContext.map(c => c.text).join(' ').toLowerCase();
 
-    // Check if user is asking about something from context
-    if (context.includes('schedule') && lower.includes('when')) {
-        return '📅 Class days are Monday, Wednesday, and Friday at 6:30 PM.';
-    }
-    if (context.includes('fee') && lower.includes('cost')) {
-        return '💰 The annual fee is LKR 15,000. You can find payment details in the Payments section.';
-    }
-
-    // Intent detection
     if (lower.includes('class') || lower.includes('day') || lower.includes('schedule'))
         return '📅 Class days: Monday, Wednesday, Friday at 6:30 PM. All sessions are recorded.';
     if (lower.includes('past paper') || lower.includes('paper') || lower.includes('exam'))
@@ -860,8 +1161,12 @@ function getBotReply(input) {
         return '🔑 Use "Forgot Password" on the login page to reset with OTP. The OTP will be sent to your phone (demo code shown in console).';
     if (lower.includes('institute') || lower.includes('school') || lower.includes('academy'))
         return '🏫 We partner with Sakya Academy, Yahansa, Nanik, Sipwin, and IMS Kandy. Check the Institutes section for details!';
-    if (lower.includes('calendar') || lower.includes('event') || lower.includes('task') || lower.includes('schedule'))
+    if (lower.includes('calendar') || lower.includes('event') || lower.includes('task'))
         return '📅 Use the Calendar section to add work hours, tasks, and class dates. You can search and manage all your events!';
+    if (lower.includes('notice') || lower.includes('announcement') || lower.includes('board') || lower.includes('sheet'))
+        return '📢 Check the Notice Board section for announcements. You can connect it to Google Sheets using the tutorial.';
+    if (lower.includes('timer') || lower.includes('analyzer') || lower.includes('work'))
+        return '⏱️ Use the Work Time Analyzer to track your study sessions. Start, stop, and reset to monitor your productivity!';
     if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey'))
         return '👋 Hello! How can I assist you with your ICT studies today?';
     if (lower.includes('thanks') || lower.includes('thank you'))
@@ -870,23 +1175,16 @@ function getBotReply(input) {
         return '🔐 If you see a permission error, check your Firebase security rules. They should allow authenticated users to read/write their own data.';
     if (lower.includes('subject') || lower.includes('topics'))
         return '📚 We cover Mathematics, Physics, Chemistry, and ICT. Check the Study Topics Overview on your dashboard for detailed progress.';
-    if (lower.includes('batch') || lower.includes('al') || lower.includes('ol'))
-        return '📖 We offer courses for A/L 2028, 2027, 2026 and O/L 2025, 2024. Check the sidebar for specific course modules.';
 
-    // Default response with context memory
-    return `🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar events, and profile updates. Could you clarify your question?`;
+    return '🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar events, notice board, work analyzer, and profile updates. Could you clarify your question?';
 }
 
 function handleChatInput() {
     const text = chatInput.value.trim();
     if (!text) return;
-
-    // Add user message
     addMessage(text, 'user', '👤 You');
     chatInput.value = '';
     showTypingIndicator();
-
-    // Simulate bot thinking
     setTimeout(() => {
         hideTypingIndicator();
         const reply = getBotReply(text);
@@ -901,8 +1199,6 @@ chatInput.addEventListener('keydown', (e) => {
         handleChatInput();
     }
 });
-
-// Quick replies
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('quick-reply')) {
         const msg = e.target.dataset.msg;
@@ -914,9 +1210,106 @@ document.addEventListener('click', (e) => {
 });
 
 // ============================================================
+// PARTICLE ANIMATION
+// ============================================================
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let particleCount = 80;
+let mouseX = 0,
+    mouseY = 0;
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+class Particle {
+    constructor() {
+        this.reset();
+    }
+    reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 3 + 1;
+        this.speedX = (Math.random() - 0.5) * 0.6;
+        this.speedY = (Math.random() - 0.5) * 0.6;
+        this.opacity = Math.random() * 0.5 + 0.2;
+        this.color = `rgba(219, 57, 0, ${this.opacity})`;
+    }
+    update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        const dx = this.x - mouseX;
+        const dy = this.y - mouseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 150) {
+            const force = (150 - dist) / 150 * 0.02;
+            this.x += dx * force;
+            this.y += dy * force;
+        }
+        if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+        if (this.x < 0) this.x = 0;
+        if (this.x > canvas.width) this.x = canvas.width;
+        if (this.y < 0) this.y = 0;
+        if (this.y > canvas.height) this.y = canvas.height;
+    }
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+    }
+}
+for (let i = 0; i < particleCount; i++) {
+    particles.push(new Particle());
+}
+document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+});
+document.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
+    if (touch) {
+        mouseX = touch.clientX;
+        mouseY = touch.clientY;
+    }
+});
+
+function animateParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+        p.update();
+        p.draw();
+    });
+    for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 120) {
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.strokeStyle = `rgba(219, 57, 0, ${0.1 * (1 - dist / 120)})`;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+            }
+        }
+    }
+    requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ============================================================
 // INIT
 // ============================================================
 console.log('🔥 Firebase connected!');
-console.log('📱 Mobile UI optimized for all devices.');
-console.log('🤖 Advanced chatbot with context memory active.');
-console.log('📷 Profile photo upload ready.');
+console.log('📢 Notice Board: Google Sheets integration ready.');
+console.log('📊 To use, replace NOTICE_SHEET_URL with your published CSV URL.');
+console.log('📱 Mobile UI optimized.');
+console.log('🤖 Advanced chatbot with context memory.');
+console.log('⏱️ Work Time Analyzer active.');
