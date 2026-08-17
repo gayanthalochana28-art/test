@@ -2,10 +2,6 @@
    FILE: style.css
    ============================================================ */
 
-/* ============================================================
-   COMPLETE STYLESHEET (Includes all features)
-   ============================================================ */
-
 /* ===== BASE ===== */
 *,
 ::before,
@@ -2125,9 +2121,162 @@ button {
     }
 }
 
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
+/* ===== ADMIN PANEL STYLES ===== */
+.admin-panel {
+    display: none;
+}
+.admin-panel.active {
+    display: block;
+}
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.admin-stat-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 1rem 1.2rem;
+    border: 1px solid var(--border-color);
+    transition: 0.3s;
+    text-align: center;
+}
+.admin-stat-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+.admin-stat-card .admin-stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+.admin-stat-card .admin-stat-label {
+    font-size: 0.7rem;
+    color: var(--text-gray);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.admin-table-wrap {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.admin-table th {
+    text-align: left;
+    color: var(--text-gray);
+    font-weight: 600;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 2px solid var(--border-color);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.admin-table td {
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-light);
+}
+.admin-table tr:hover td {
+    background: rgba(219, 57, 0, 0.05);
+}
+.admin-table .actions {
+    display: flex;
+    gap: 0.3rem;
+}
+.admin-table .actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    transition: 0.2s;
+}
+.admin-table .actions .edit-btn {
+    color: var(--primary);
+}
+.admin-table .actions .edit-btn:hover {
+    background: rgba(219, 57, 0, 0.15);
+}
+.admin-table .actions .delete-btn {
+    color: #ef4444;
+}
+.admin-table .actions .delete-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+}
+.admin-table .role-badge {
+    display: inline-block;
+    padding: 0.1rem 0.6rem;
+    border-radius: 40px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.role-badge.admin {
+    background: rgba(219, 57, 0, 0.2);
+    color: var(--primary);
+    border: 1px solid rgba(219, 57, 0, 0.3);
+}
+.role-badge.user {
+    background: rgba(156, 163, 175, 0.15);
+    color: var(--text-gray);
+    border: 1px solid rgba(156, 163, 175, 0.2);
+}
+.admin-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+}
+.admin-tabs .tab-btn {
+    padding: 0.4rem 1.2rem;
+    border-radius: 40px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-gray);
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.admin-tabs .tab-btn:hover {
+    border-color: var(--primary);
+    color: white;
+}
+.admin-tabs .tab-btn.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+    border-color: var(--primary);
+}
+.admin-tab-content {
+    display: none;
+}
+.admin-tab-content.active {
+    display: block;
+}
+
+/* Hidden admin nav item */
+.nav-item.admin-nav {
+    display: none;
+}
+.nav-item.admin-nav.visible {
+    display: flex;
+}
+.secret-admin-trigger {
+    cursor: pointer;
+    user-select: none;
+}
+.secret-admin-trigger:active {
+    opacity: 0.7;
+}
+
+/* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
     :root {
         --sidebar-width: 200px;
@@ -2370,6 +2519,25 @@ button {
         margin-top: 1rem;
         padding: 1rem 0;
     }
+    /* Admin responsive */
+    .admin-stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+    }
+    .admin-stat-card .admin-stat-number {
+        font-size: 1.4rem;
+    }
+    .admin-table {
+        font-size: 0.75rem;
+    }
+    .admin-table th,
+    .admin-table td {
+        padding: 0.4rem 0.5rem;
+    }
+    .admin-tabs .tab-btn {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.8rem;
+    }
 }
 @media (max-width: 480px) {
     .login-image {
@@ -2490,6 +2658,17 @@ button {
     }
     .book-model img {
         max-height: 120px;
+    }
+    /* Admin responsive small */
+    .admin-stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+    }
+    .admin-stat-card {
+        padding: 0.6rem;
+    }
+    .admin-stat-card .admin-stat-number {
+        font-size: 1.2rem;
     }
 }
 @media (max-height: 500px) and (orientation: landscape) {
