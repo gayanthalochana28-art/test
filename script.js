@@ -1,13 +1,39 @@
 // ============================================================
-// COMPLETE JAVASCRIPT with Google Sheets Notice Board & Admin
+// FILE: script.js
+// ============================================================
+
+// ============================================================
+// COMPLETE JAVASCRIPT - Admin Panel + Firebase Integration
 // ============================================================
 
 // ===== FIREBASE IMPORTS =====
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-analytics.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithPopup, GoogleAuthProvider, updatePassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { getDatabase, ref, set, update, get, child, push, remove, onValue } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
+import {
+    getAuth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    sendPasswordResetEmail,
+    signInWithPopup,
+    GoogleAuthProvider,
+    updatePassword,
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import {
+    getDatabase,
+    ref,
+    set,
+    update,
+    get,
+    child,
+    push,
+    remove,
+    onValue,
+    query,
+    orderByChild,
+    equalTo
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
 
 // ===== FIREBASE CONFIG =====
 const firebaseConfig = {
@@ -25,17 +51,40 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const database = getDatabase(app);
-const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 
 // ============================================================
-// GOOGLE SHEETS NOTIFICATION (Top Bar)
+// ADMIN CREDENTIALS (Hidden from UI)
 // ============================================================
-const GOOGLE_SHEETS_URL =
-    'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLDVD0TZD9vBDVClfGmQYxXGl3wPopuYdzlP0RQvjXqkmVW305TYaHFcUse5EyJoSmRM9h5OkDmRYb/pub?gid=0&single=true&output=csv';
+const ADMIN_EMAIL = 'gayanthalochana28@gmail.com';
 
-const NOTICE_SHEETS_URL =
-    'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLDVD0TZD9vBDVClfGmQYxXGl3wPopuYdzlP0RQvjXqkmVW305TYaHFcUse5EyJoSmRM9h5OkDmRYb/pub?gid=0&single=true&output=csv';
+// ============================================================
+// DOM REFS
+// ============================================================
+const authScreen = document.getElementById('authScreen');
+const dashScreen = document.getElementById('dashboardScreen');
+const loginEmail = document.getElementById('loginEmailInput');
+const loginPass = document.getElementById('loginPasswordInput');
+const loginBtn = document.getElementById('loginBtn');
+const googleBtn = document.getElementById('googleBtn');
+
+// Header user badge
+const headerAvatar = document.getElementById('headerAvatar');
+const headerName = document.getElementById('headerName');
+const headerRole = document.getElementById('headerRole');
+
+// Sidebar
+const roleBadge = document.getElementById('roleBadge');
+const adminSections = document.getElementById('adminSections');
+
+// Profile fields
+const profileImgDisplay = document.getElementById('profileImgDisplay');
+const profileNameDisplay = document.getElementById('profileNameDisplay');
+const profileEmailDisplay = document.getElementById('profileEmailDisplay');
+const pFullName = document.getElementById('pFullName');
+const pEmail = document.getElementById('pEmail');
+const pRole = document.getElementById('pRole');
+const dashName = document.getElementById('dashName');
 
 // ============================================================
 // PARTICLE ANIMATION
@@ -44,7 +93,8 @@ const canvas = document.getElementById('particleCanvas');
 const ctx = canvas.getContext('2d');
 let particles = [];
 let particleCount = 80;
-let mouseX = 0, mouseY = 0;
+let mouseX = 0,
+    mouseY = 0;
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -67,8 +117,8 @@ class Particle {
     update() {
         this.x += this.speedX;
         this.y += this.speedY;
-        const dx = this.x - mouseX;
-        const dy = this.y - mouseY;
+        const dx = this.x - mouseX,
+            dy = this.y - mouseY;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 150) {
             const force = (150 - dist) / 150 * 0.02;
@@ -91,15 +141,18 @@ class Particle {
 }
 for (let i = 0; i < particleCount; i++) particles.push(new Particle());
 
-document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+document.addEventListener('mousemove', (e) => { mouseX = e.clientX;
+    mouseY = e.clientY; });
 document.addEventListener('touchmove', (e) => {
     const touch = e.touches[0];
-    if (touch) { mouseX = touch.clientX; mouseY = touch.clientY; }
+    if (touch) { mouseX = touch.clientX;
+        mouseY = touch.clientY; }
 });
 
 function animateParticles() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    particles.forEach(p => { p.update(); p.draw(); });
+    particles.forEach(p => { p.update();
+        p.draw(); });
     for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
             const dx = particles[i].x - particles[j].x;
@@ -120,272 +173,6 @@ function animateParticles() {
 animateParticles();
 
 // ============================================================
-// GOOGLE SHEETS NOTIFICATION FETCH
-// ============================================================
-async function fetchGoogleSheetsNotifications() {
-    try {
-        const response = await fetch(GOOGLE_SHEETS_URL);
-        if (!response.ok) throw new Error('Failed to fetch');
-        const csvText = await response.text();
-        const lines = csvText.split('\n').filter(line => line.trim());
-        if (lines.length < 2) { notifBar.style.display = 'none'; return; }
-        const messages = [];
-        for (let i = 1; i < lines.length; i++) {
-            const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-            if (cols.length >= 3) {
-                const message = cols[1] || '';
-                const active = cols[2]?.toUpperCase() === 'TRUE' ||
-                    cols[2]?.toUpperCase() === 'YES' ||
-                    cols[2]?.toUpperCase() === '1';
-                if (active && message) messages.push(message);
-            }
-        }
-        if (messages.length === 0) { notifBar.style.display = 'none'; return; }
-        let html = '';
-        messages.forEach(msg => { html += `<span>📢 ${msg}</span>`; });
-        notifMarquee.innerHTML = html;
-        notifBar.style.display = 'block';
-        document.body.classList.add('with-notif');
-    } catch (err) {
-        console.warn('Google Sheets notification error:', err);
-        notifMarquee.innerHTML = '<span>📢 Stay updated with ictfromabc announcements!</span>';
-        notifBar.style.display = 'block';
-        document.body.classList.add('with-notif');
-    }
-}
-document.getElementById('closeNotifBtn').addEventListener('click', () => {
-    notifBar.style.display = 'none';
-    document.body.classList.remove('with-notif');
-});
-
-// ============================================================
-// GOOGLE SHEETS NOTICE BOARD FETCH
-// ============================================================
-async function fetchGoogleSheetsNotices() {
-    const noticeList = document.getElementById('noticeList');
-    try {
-        const response = await fetch(NOTICE_SHEETS_URL);
-        if (!response.ok) throw new Error('Failed to fetch');
-        const csvText = await response.text();
-        const lines = csvText.split('\n').filter(line => line.trim());
-        if (lines.length < 2) {
-            noticeList.innerHTML = `<div class="notice-item"><div class="notice-text">📭 No notices available. Add some to your Google Sheet.</div></div>`;
-            return;
-        }
-        let html = '';
-        let count = 0;
-        for (let i = 1; i < lines.length && count < 20; i++) {
-            const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-            if (cols.length >= 3) {
-                const timestamp = cols[0] || '';
-                const noticeText = cols[1] || '';
-                const active = cols[2]?.toUpperCase() === 'TRUE' ||
-                    cols[2]?.toUpperCase() === 'YES' ||
-                    cols[2]?.toUpperCase() === '1';
-                if (active && noticeText) {
-                    const timeDisplay = timestamp ? `📅 ${timestamp}` : '📅 Recently';
-                    html += `
-                        <div class="notice-item">
-                            <div class="notice-text"><span class="notice-pin">📌</span> ${noticeText}</div>
-                            <div class="notice-time">${timeDisplay}</div>
-                        </div>
-                    `;
-                    count++;
-                }
-            }
-        }
-        if (html === '') {
-            noticeList.innerHTML = `<div class="notice-item"><div class="notice-text">📭 No active notices found.</div></div>`;
-        } else {
-            noticeList.innerHTML = html;
-        }
-    } catch (err) {
-        console.warn('Google Sheets notice error:', err);
-        noticeList.innerHTML = `
-            <div class="notice-item">
-                <div class="notice-text">⚠️ Could not load notices from Google Sheets.</div>
-                <div class="notice-time">Error: ${err.message}</div>
-            </div>
-        `;
-    }
-}
-
-// ============================================================
-// MANUAL NOTICE POSTING (Local only)
-// ============================================================
-function addLocalNotice(text) {
-    if (!text.trim()) return;
-    const noticeList = document.getElementById('noticeList');
-    const now = new Date();
-    const timeStr = `📅 ${now.toLocaleDateString()}, ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    const div = document.createElement('div');
-    div.className = 'notice-item';
-    div.innerHTML = `
-        <div class="notice-text"><span class="notice-pin">📌</span> ${text}</div>
-        <div class="notice-time">${timeStr}</div>
-    `;
-    noticeList.prepend(div);
-    while (noticeList.children.length > 10) {
-        noticeList.removeChild(noticeList.lastChild);
-    }
-    document.getElementById('noticeInput').value = '';
-}
-
-// ============================================================
-// DOM REFS
-// ============================================================
-const authScreen = document.getElementById('authScreen');
-const dashScreen = document.getElementById('dashboardScreen');
-const loginPhone = document.getElementById('loginPhoneInput');
-const loginPass = document.getElementById('loginPasswordInput');
-const loginBtn = document.getElementById('loginBtn');
-const googleBtn = document.getElementById('googleBtn');
-
-const dashName = document.getElementById('dashName');
-const dashNameBadge = document.getElementById('dashNameBadge');
-const dashAvatar = document.getElementById('dashAvatar');
-const profileAvatarImg = document.getElementById('profileAvatarImg');
-const pFullName = document.getElementById('pFullName');
-const pPhone = document.getElementById('pPhone');
-const profileNameDisplay = document.getElementById('profileNameDisplay');
-const profilePhoneDisplay = document.getElementById('profilePhoneDisplay');
-const profileImgDisplay = document.getElementById('profileImgDisplay');
-const profilePhotoInput = document.getElementById('profilePhotoInput');
-const uploadStatus = document.getElementById('uploadStatus');
-
-const notifBar = document.getElementById('notificationBar');
-const notifMarquee = document.getElementById('notifMarquee');
-
-// ============================================================
-// GREETING POPUP
-// ============================================================
-const greetingPopup = document.getElementById('greetingPopup');
-const greetingIcon = document.getElementById('greetingIcon');
-const greetingTitle = document.getElementById('greetingTitle');
-const greetingName = document.getElementById('greetingName');
-const greetingSub = document.getElementById('greetingSub');
-const greetingTime = document.getElementById('greetingTime');
-
-function getGreeting() {
-    const hour = new Date().getHours();
-    if (hour < 12) return { emoji: '🌅', text: 'Good Morning' };
-    if (hour < 17) return { emoji: '☀️', text: 'Good Afternoon' };
-    if (hour < 20) return { emoji: '🌇', text: 'Good Evening' };
-    return { emoji: '🌙', text: 'Good Night' };
-}
-
-function showGreeting(name) {
-    const greet = getGreeting();
-    greetingIcon.textContent = greet.emoji;
-    greetingName.textContent = name || 'Student';
-    greetingTitle.innerHTML = `${greet.text}, <span id="greetingName">${name || 'Student'}</span>!`;
-    const now = new Date();
-    greetingSub.textContent = `Welcome to ictfromabc`;
-    greetingTime.textContent =
-        `⏰ ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    greetingPopup.classList.add('active');
-}
-
-window.closeGreeting = function() {
-    greetingPopup.classList.remove('active');
-};
-
-// ============================================================
-// WORK TIME ANALYZER
-// ============================================================
-let timerInterval = null;
-let seconds = 0;
-let totalSeconds = parseInt(localStorage.getItem('ict_total_seconds') || '0');
-let sessionCount = parseInt(localStorage.getItem('ict_session_count') || '0');
-let isRunning = false;
-
-const timerDisplay = document.getElementById('timerDisplay');
-const totalTimeDisplay = document.getElementById('totalTimeDisplay');
-const sessionCountDisplay = document.getElementById('sessionCount');
-const startBtn = document.getElementById('startTimerBtn');
-const stopBtn = document.getElementById('stopTimerBtn');
-const resetBtn = document.getElementById('resetTimerBtn');
-const statusDot = document.getElementById('statusDot');
-const statusText = document.getElementById('statusText');
-
-function formatTime(sec) {
-    const h = String(Math.floor(sec / 3600)).padStart(2, '0');
-    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
-    const s = String(sec % 60).padStart(2, '0');
-    return `${h}:${m}:${s}`;
-}
-
-function updateTimerDisplay() {
-    timerDisplay.textContent = formatTime(seconds);
-    totalTimeDisplay.textContent = formatTime(totalSeconds);
-    sessionCountDisplay.textContent = sessionCount;
-}
-
-function startTimer() {
-    if (isRunning) return;
-    isRunning = true;
-    statusDot.className = 'status-dot active';
-    statusText.textContent = '⏳ Studying...';
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
-    timerInterval = setInterval(() => {
-        seconds++;
-        totalSeconds++;
-        localStorage.setItem('ict_total_seconds', String(totalSeconds));
-        updateTimerDisplay();
-    }, 1000);
-}
-
-function stopTimer() {
-    if (!isRunning) return;
-    isRunning = false;
-    statusDot.className = 'status-dot inactive';
-    statusText.textContent = '⏸️ Paused';
-    clearInterval(timerInterval);
-    timerInterval = null;
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    if (seconds > 0) {
-        sessionCount++;
-        localStorage.setItem('ict_session_count', String(sessionCount));
-        updateTimerDisplay();
-    }
-    seconds = 0;
-}
-
-function resetTimer() {
-    if (isRunning) stopTimer();
-    seconds = 0;
-    totalSeconds = 0;
-    sessionCount = 0;
-    localStorage.setItem('ict_total_seconds', '0');
-    localStorage.setItem('ict_session_count', '0');
-    statusDot.className = 'status-dot inactive';
-    statusText.textContent = '🔄 Reset';
-    updateTimerDisplay();
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-}
-
-startBtn.addEventListener('click', startTimer);
-stopBtn.addEventListener('click', stopTimer);
-resetBtn.addEventListener('click', resetTimer);
-updateTimerDisplay();
-
-// ============================================================
-// NOTICE BOARD EVENT BINDINGS
-// ============================================================
-const noticeInput = document.getElementById('noticeInput');
-const postNoticeBtn = document.getElementById('postNoticeBtn');
-
-postNoticeBtn.addEventListener('click', () => {
-    addLocalNotice(noticeInput.value);
-});
-noticeInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') addLocalNotice(noticeInput.value);
-});
-
-// ============================================================
 // LOCAL STORAGE HELPERS
 // ============================================================
 function saveUserLocally(uid, data) {
@@ -404,58 +191,8 @@ function clearUserLocally() {
     localStorage.removeItem('ict_user_data');
 }
 
-// ============================================================
-// PROFILE PHOTO UPLOAD
-// ============================================================
-function updateProfilePhoto(photoURL) {
-    const url = photoURL || 'Profile.png';
-    if (profileAvatarImg) profileAvatarImg.src = url;
-    if (profileImgDisplay) profileImgDisplay.src = url;
-    if (dashAvatar) {
-        const img = dashAvatar.querySelector('img');
-        if (img) img.src = url;
-    }
-    const userData = getUserLocally();
-    if (userData.data) {
-        userData.data.photo = url;
-        saveUserLocally(userData.uid, userData.data);
-    }
-}
-
-async function uploadProfilePhoto(file) {
-    const user = auth.currentUser;
-    if (!user) { alert('Please login first.'); return; }
-    if (!file || !file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
-    if (file.size > 5 * 1024 * 1024) { alert('File is too large. Max 5MB.'); return; }
-    uploadStatus.textContent = '⏳ Uploading...';
-    uploadStatus.style.color = '#ffaa00';
-    try {
-        const ext = file.name.split('.').pop();
-        const filename = `profile_photos/${user.uid}_${Date.now()}.${ext}`;
-        const fileRef = storageRef(storage, filename);
-        const snapshot = await uploadBytes(fileRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        await update(ref(database, `users/${user.uid}`), { photo: downloadURL });
-        const userData = getUserLocally();
-        if (userData.data) {
-            userData.data.photo = downloadURL;
-            saveUserLocally(user.uid, userData.data);
-        }
-        updateProfilePhoto(downloadURL);
-        uploadStatus.textContent = '✅ Photo updated!';
-        uploadStatus.style.color = '#4caf50';
-    } catch (err) {
-        uploadStatus.textContent = '❌ Upload failed';
-        uploadStatus.style.color = '#ff4444';
-        alert('Error uploading photo: ' + err.message);
-    }
-}
-if (profilePhotoInput) {
-    profilePhotoInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) uploadProfilePhoto(file);
-        profilePhotoInput.value = '';
-    });
+function isAdmin(email) {
+    return email && email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 }
 
 // ============================================================
@@ -464,50 +201,261 @@ if (profilePhotoInput) {
 function showDashboard(userData) {
     authScreen.classList.add('hidden');
     dashScreen.classList.remove('hidden');
-    const name = userData?.fullName || userData?.name || 'Student';
-    const phone = userData?.phone || '-';
-    const photo = userData?.photo || 'Profile.png';
-    dashName.textContent = name;
-    dashNameBadge.textContent = name;
-    pFullName.textContent = name;
-    pPhone.textContent = phone;
-    profileNameDisplay.textContent = name;
-    profilePhoneDisplay.textContent = phone;
-    updateProfilePhoto(photo);
-    if (userData?.uid) loadEvents(userData.uid);
-    fetchGoogleSheetsNotifications();
-    fetchGoogleSheetsNotices();
-    setTimeout(() => {
-        showGreeting(name);
-    }, 600);
 
-    // Check if current user is admin (by email)
-    const adminEmail = 'gayanthalochana28@gmail.com';
-    const currentUser = auth.currentUser;
-    if (currentUser && currentUser.email === adminEmail) {
-        document.getElementById('adminNavItem').classList.add('visible');
-        // Also show admin section if currently hidden? Not auto-switch; user can click.
-        // Load admin data
-        loadAdminData();
+    const email = userData?.email || 'student@example.com';
+    const name = userData?.fullName || userData?.name || 'Student';
+    const isAdminUser = isAdmin(email);
+
+    // Update header
+    headerName.textContent = name;
+    if (userData?.photo) {
+        const img = headerAvatar.querySelector('img');
+        if (img) img.src = userData.photo;
+    }
+    headerRole.textContent = isAdminUser ? 'Admin' : 'Student';
+    headerRole.className = 'role-tag' + (isAdminUser ? ' admin' : '');
+
+    // Update sidebar role badge
+    if (isAdminUser) {
+        roleBadge.textContent = 'Admin';
+        roleBadge.style.background = 'linear-gradient(135deg, #db3900, #ff4d1a)';
+        adminSections.style.display = 'block';
     } else {
-        document.getElementById('adminNavItem').classList.remove('visible');
+        roleBadge.textContent = 'Student';
+        roleBadge.style.background = 'var(--primary)';
+        adminSections.style.display = 'none';
+    }
+
+    // Update profile
+    dashName.textContent = name;
+    profileNameDisplay.textContent = name;
+    profileEmailDisplay.textContent = email;
+    pFullName.textContent = name;
+    pEmail.textContent = email;
+    pRole.textContent = isAdminUser ? 'Admin' : 'Student';
+
+    if (userData?.photo) {
+        profileImgDisplay.src = userData.photo;
+    }
+
+    // Load admin data if admin
+    if (isAdminUser) {
+        loadAdminData();
+        navigateTo('admin-dashboard');
+    } else {
+        navigateTo('home');
     }
 }
 
 // ============================================================
+// ADMIN DATA LOADING
+// ============================================================
+let allStudents = [],
+    allCourses = [],
+    allPdfs = [];
+
+function loadAdminData() {
+    loadStudents();
+    loadCourses();
+    loadPdfs();
+    updateAdminStats();
+}
+
+function loadStudents() {
+    const usersRef = ref(database, 'users');
+    onValue(usersRef, (snapshot) => {
+        const data = snapshot.val();
+        allStudents = [];
+        if (data) {
+            for (const [key, user] of Object.entries(data)) {
+                if (!isAdmin(user.email)) {
+                    allStudents.push({ uid: key, ...user });
+                }
+            }
+        }
+        renderStudentsTable();
+        document.getElementById('adminTotalStudents').textContent = allStudents.length;
+        document.getElementById('adminStudentCount').textContent = allStudents.length;
+    });
+}
+
+function renderStudentsTable() {
+    const tbody = document.getElementById('adminStudentsTable');
+    if (allStudents.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-gray);">No students registered yet.</td></tr>';
+        return;
+    }
+    let html = '';
+    allStudents.forEach((s, i) => {
+        html += `
+                    <tr>
+                        <td>${i+1}</td>
+                        <td>${s.fullName || s.name || 'Unknown'}</td>
+                        <td>${s.email || '-'}</td>
+                        <td>${s.phone || '-'}</td>
+                        <td>${s.batch || 'N/A'}</td>
+                    </tr>
+                `;
+    });
+    tbody.innerHTML = html;
+}
+
+function loadCourses() {
+    const coursesRef = ref(database, 'courses');
+    onValue(coursesRef, (snapshot) => {
+        const data = snapshot.val();
+        allCourses = [];
+        if (data) {
+            for (const [key, course] of Object.entries(data)) {
+                allCourses.push({ key, ...course });
+            }
+        }
+        renderCourses();
+        document.getElementById('adminTotalCourses').textContent = allCourses.length;
+        document.getElementById('adminCourseCount').textContent = allCourses.length;
+    });
+}
+
+function renderCourses() {
+    const container = document.getElementById('courseList');
+    if (allCourses.length === 0) {
+        container.innerHTML = '<div class="list-item" style="color:var(--text-gray);">No courses added yet.</div>';
+        return;
+    }
+    let html = '';
+    allCourses.forEach(c => {
+        html += `
+                    <div class="list-item" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.3rem;">
+                        <div>
+                            <strong style="color:white;">${c.title}</strong>
+                            <span style="color:var(--text-gray);font-size:0.75rem;margin-left:0.5rem;">${c.instructor || 'Unknown'}</span>
+                            <span style="color:var(--text-gray);font-size:0.7rem;margin-left:0.5rem;">${c.description || ''}</span>
+                        </div>
+                        <div>
+                            <button class="home-btn home-btn-danger" style="padding:0.2rem 0.6rem;font-size:0.7rem;" onclick="deleteCourse('${c.key}')">🗑️</button>
+                        </div>
+                    </div>
+                `;
+    });
+    container.innerHTML = html;
+}
+
+window.deleteCourse = function(key) {
+    if (confirm('Delete this course?')) {
+        remove(ref(database, `courses/${key}`)).then(() => loadCourses());
+    }
+};
+
+function loadPdfs() {
+    const pdfsRef = ref(database, 'pdfs');
+    onValue(pdfsRef, (snapshot) => {
+        const data = snapshot.val();
+        allPdfs = [];
+        if (data) {
+            for (const [key, pdf] of Object.entries(data)) {
+                allPdfs.push({ key, ...pdf });
+            }
+        }
+        renderPdfs();
+        document.getElementById('adminTotalPdfs').textContent = allPdfs.length;
+        document.getElementById('adminPdfCount').textContent = allPdfs.length;
+    });
+}
+
+function renderPdfs() {
+    const container = document.getElementById('pdfList');
+    if (allPdfs.length === 0) {
+        container.innerHTML = '<div class="list-item" style="color:var(--text-gray);">No PDFs uploaded yet.</div>';
+        return;
+    }
+    let html = '';
+    allPdfs.forEach(p => {
+        html += `
+                    <div class="list-item" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.3rem;">
+                        <div>
+                            <strong style="color:white;">📄 ${p.title}</strong>
+                            <span style="color:var(--text-gray);font-size:0.75rem;margin-left:0.5rem;">${p.category || 'General'}</span>
+                            <a href="${p.url}" target="_blank" style="color:var(--primary);font-size:0.75rem;margin-left:0.5rem;">🔗</a>
+                        </div>
+                        <div>
+                            <button class="home-btn home-btn-danger" style="padding:0.2rem 0.6rem;font-size:0.7rem;" onclick="deletePdf('${p.key}')">🗑️</button>
+                        </div>
+                    </div>
+                `;
+    });
+    container.innerHTML = html;
+}
+
+window.deletePdf = function(key) {
+    if (confirm('Delete this PDF?')) {
+        remove(ref(database, `pdfs/${key}`)).then(() => loadPdfs());
+    }
+};
+
+function updateAdminStats() {
+    // Already updated in each load function
+}
+
+// ============================================================
+// ADMIN CRUD OPERATIONS
+// ============================================================
+function openCourseModal() {
+    document.getElementById('courseTitle').value = '';
+    document.getElementById('courseDesc').value = '';
+    document.getElementById('courseInstructor').value = '';
+    openModal('courseModal');
+}
+window.openCourseModal = openCourseModal;
+
+document.getElementById('saveCourseBtn').addEventListener('click', () => {
+    const title = document.getElementById('courseTitle').value.trim();
+    const desc = document.getElementById('courseDesc').value.trim();
+    const instructor = document.getElementById('courseInstructor').value.trim();
+    if (!title) { alert('Please enter a course title.'); return; }
+    const data = { title, description: desc, instructor, createdAt: Date.now() };
+    push(ref(database, 'courses'), data).then(() => {
+        alert('Course added!');
+        closeModal('courseModal');
+        loadCourses();
+    });
+});
+
+function openPdfModal() {
+    document.getElementById('pdfTitle').value = '';
+    document.getElementById('pdfUrl').value = '';
+    document.getElementById('pdfCategory').value = '';
+    openModal('pdfModal');
+}
+window.openPdfModal = openPdfModal;
+
+document.getElementById('savePdfBtn').addEventListener('click', () => {
+    const title = document.getElementById('pdfTitle').value.trim();
+    const url = document.getElementById('pdfUrl').value.trim();
+    const category = document.getElementById('pdfCategory').value.trim();
+    if (!title || !url) { alert('Please enter title and URL.'); return; }
+    const data = { title, url, category, uploadedAt: Date.now() };
+    push(ref(database, 'pdfs'), data).then(() => {
+        alert('PDF uploaded!');
+        closeModal('pdfModal');
+        loadPdfs();
+    });
+});
+
+// ============================================================
 // AUTH FUNCTIONS
 // ============================================================
-async function loginUser(phone, pass) {
-    if (!phone || !pass) { alert('Please enter phone and password.'); return; }
+async function loginUser(email, pass) {
+    if (!email || !pass) { alert('Please enter email and password.'); return; }
     loginBtn.disabled = true;
     loginBtn.innerHTML = '<span class="loader"></span> Logging in...';
     loginBtn.classList.add('btn-loading');
     try {
-        const cred = await signInWithEmailAndPassword(auth, phone + '@ictfromabc.com', pass);
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
         const user = cred.user;
         const snapshot = await get(child(ref(database), `users/${user.uid}`));
-        const data = snapshot.val() || { fullName: 'Student', phone, batch: 'ICT AL 2026' };
+        const data = snapshot.val() || { fullName: 'Student', email: user.email };
         data.uid = user.uid;
+        data.email = user.email;
         saveUserLocally(user.uid, data);
         showDashboard(data);
     } catch (err) {
@@ -520,12 +468,12 @@ async function loginUser(phone, pass) {
     }
 }
 
-async function signupUser(name, phone, pass) {
-    if (!name || !phone || !pass) { alert('Please fill all fields.'); return; }
+async function signupUser(name, email, pass) {
+    if (!name || !email || !pass) { alert('Please fill all fields.'); return; }
     try {
-        const cred = await createUserWithEmailAndPassword(auth, phone + '@ictfromabc.com', pass);
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
         const user = cred.user;
-        const data = { fullName: name, phone, name, batch: 'ICT AL 2026' };
+        const data = { fullName: name, email, role: 'student' };
         await set(ref(database, `users/${user.uid}`), data);
         saveUserLocally(user.uid, data);
         showDashboard(data);
@@ -545,15 +493,14 @@ async function googleLogin() {
         if (!data) {
             data = {
                 fullName: user.displayName || 'Student',
-                phone: user.phoneNumber || '',
                 email: user.email,
-                name: user.displayName || 'Student',
-                batch: 'ICT AL 2026',
-                photo: user.photoURL || 'Profile.png'
+                role: 'student',
+                photo: user.photoURL || ''
             };
             await set(ref(database, `users/${user.uid}`), data);
         }
         data.uid = user.uid;
+        data.email = user.email;
         if (user.photoURL) data.photo = user.photoURL;
         saveUserLocally(user.uid, data);
         showDashboard(data);
@@ -563,114 +510,42 @@ async function googleLogin() {
     }
 }
 
-async function changePassword(newPass) {
-    if (!newPass) { alert('Enter new password.'); return; }
+async function changePassword(currentPass, newPass) {
+    if (!currentPass || !newPass) { alert('Enter both passwords.'); return; }
+    if (newPass.length < 6) { alert('New password must be at least 6 characters.'); return; }
     try {
-        if (auth.currentUser) {
-            await updatePassword(auth.currentUser, newPass);
+        const user = auth.currentUser;
+        if (user) {
+            await updatePassword(user, newPass);
             alert('Password updated successfully!');
             closeModal('changePassModal');
         } else {
-            alert('Please login again to change password.');
+            alert('Please login again.');
         }
     } catch (err) {
-        alert('Error updating password. Please try again.');
+        alert('Error: ' + err.message);
         console.error(err);
     }
 }
 
-async function saveProfile(data) {
+async function saveProfile(name, phone) {
     const userData = getUserLocally();
     if (!userData.uid) { alert('Please login first.'); return; }
     try {
-        if (userData.uid !== 'local') {
-            await update(ref(database, `users/${userData.uid}`), data);
-        }
-        const merged = { ...userData.data, ...data };
+        const updates = {};
+        if (name) updates.fullName = name;
+        if (phone) updates.phone = phone;
+        await update(ref(database, `users/${userData.uid}`), updates);
+        const merged = { ...userData.data, ...updates };
         saveUserLocally(userData.uid, merged);
         showDashboard(merged);
         closeModal('profileModal');
-        alert('Profile updated successfully!');
+        alert('Profile updated!');
     } catch (err) {
-        alert('Error saving profile.');
+        alert('Error: ' + err.message);
         console.error(err);
     }
 }
-
-// ============================================================
-// OTP
-// ============================================================
-let otpCode = '', otpVerified = false, currentPhone = '', otpTimerInterval = null;
-
-function generateOTP() { return Math.floor(100000 + Math.random() * 900000).toString(); }
-
-function startOtpTimer(seconds = 60) {
-    const timerEl = document.getElementById('otpTimer');
-    let remaining = seconds;
-    timerEl.textContent = `⏱️ Resend in ${remaining}s`;
-    clearInterval(otpTimerInterval);
-    otpTimerInterval = setInterval(() => {
-        remaining--;
-        if (remaining <= 0) {
-            clearInterval(otpTimerInterval);
-            timerEl.textContent = '✅ OTP sent! Check your phone.';
-            document.getElementById('sendOtpBtn').disabled = false;
-        } else {
-            timerEl.textContent = `⏱️ Resend in ${remaining}s`;
-        }
-    }, 1000);
-}
-document.getElementById('sendOtpBtn').addEventListener('click', () => {
-    const phone = document.getElementById('forgotPhone').value.trim();
-    if (!phone) { alert('Enter phone number.'); return; }
-    currentPhone = phone;
-    otpCode = generateOTP();
-    otpVerified = false;
-    console.log(`📱 OTP for ${phone}: ${otpCode}`);
-    document.getElementById('sendOtpBtn').disabled = true;
-    document.getElementById('otpTimer').textContent = '📨 OTP sent! Check console or SMS.';
-    document.getElementById('otpStatus').textContent = '';
-    startOtpTimer(60);
-    alert(`OTP sent to ${phone} (Demo: ${otpCode})`);
-});
-document.getElementById('verifyOtpBtn').addEventListener('click', () => {
-    const entered = document.getElementById('otpInput').value.trim();
-    if (!entered) { alert('Enter OTP code.'); return; }
-    if (entered === otpCode) {
-        otpVerified = true;
-        document.getElementById('otpStatus').textContent = '✅ OTP verified successfully!';
-        document.getElementById('otpStatus').style.color = '#4caf50';
-        document.getElementById('otpTimer').textContent = '';
-        alert('OTP verified! Set your new password.');
-    } else {
-        document.getElementById('otpStatus').textContent = '❌ Invalid OTP. Please try again.';
-        document.getElementById('otpStatus').style.color = '#ff4444';
-    }
-});
-document.getElementById('resetPassBtn').addEventListener('click', async () => {
-    if (!otpVerified) { alert('Please verify OTP first.'); return; }
-    const newPass = document.getElementById('resetNewPass').value.trim();
-    if (!newPass || newPass.length < 6) { alert('Password must be at least 6 characters.'); return; }
-    try {
-        await sendPasswordResetEmail(auth, currentPhone + '@ictfromabc.com');
-        alert('Password reset email sent! Check your inbox.');
-        closeModal('forgotModal');
-        otpVerified = false;
-        document.getElementById('otpStatus').textContent = '';
-        document.getElementById('otpTimer').textContent = '';
-        document.getElementById('otpInput').value = '';
-        document.getElementById('resetNewPass').value = '';
-        document.getElementById('sendOtpBtn').disabled = false;
-    } catch (err) {
-        const localData = getUserLocally();
-        if (localData.data && localData.data.phone === currentPhone) {
-            alert('Password updated successfully! (local mode)');
-            closeModal('forgotModal');
-        } else {
-            alert('Account not found. Please sign up first.');
-        }
-    }
-});
 
 // ============================================================
 // AUTH STATE
@@ -678,8 +553,9 @@ document.getElementById('resetPassBtn').addEventListener('click', async () => {
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         const snapshot = await get(child(ref(database), `users/${user.uid}`));
-        const data = snapshot.val() || { fullName: 'Student', phone: '', batch: 'ICT AL 2026' };
+        const data = snapshot.val() || { fullName: 'Student', email: user.email };
         data.uid = user.uid;
+        data.email = user.email;
         if (user.photoURL) data.photo = user.photoURL;
         saveUserLocally(user.uid, data);
         showDashboard(data);
@@ -695,75 +571,76 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // ============================================================
-// EVENT BINDINGS (Auth)
+// EVENT BINDINGS
 // ============================================================
-loginBtn.addEventListener('click', () => loginUser(loginPhone.value.trim(), loginPass.value.trim()));
+loginBtn.addEventListener('click', () => loginUser(loginEmail.value.trim(), loginPass.value.trim()));
 loginPass.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
 googleBtn.addEventListener('click', googleLogin);
 
-document.getElementById('signupLink').addEventListener('click', (e) => { e.preventDefault(); openModal('signupModal'); });
-document.getElementById('forgotLink').addEventListener('click', (e) => { e.preventDefault(); openModal('forgotModal'); });
+document.getElementById('signupLink').addEventListener('click', (e) => { e.preventDefault();
+    openModal('signupModal'); });
+document.getElementById('forgotLink').addEventListener('click', (e) => { e.preventDefault();
+    openModal('forgotModal'); });
 
 document.getElementById('signupBtn').addEventListener('click', () => {
     const name = document.getElementById('signupName').value.trim();
-    const phone = document.getElementById('signupPhone').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
     const pass = document.getElementById('signupPass').value.trim();
-    signupUser(name, phone, pass);
+    signupUser(name, email, pass);
 });
+
+document.getElementById('resetPassBtn').addEventListener('click', async () => {
+    const email = document.getElementById('forgotEmail').value.trim();
+    if (!email) { alert('Enter your email.'); return; }
+    try {
+        await sendPasswordResetEmail(auth, email);
+        alert('Password reset link sent to your email!');
+        closeModal('forgotModal');
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+});
+
 document.getElementById('changePassBtn').addEventListener('click', () => {
-    changePassword(document.getElementById('newPass').value.trim());
+    changePassword(
+        document.getElementById('currentPass').value.trim(),
+        document.getElementById('newPass').value.trim()
+    );
 });
+document.getElementById('changePasswordBtn').addEventListener('click', () => openModal('changePassModal'));
+
 document.getElementById('editProfileBtn').addEventListener('click', () => {
     const data = getUserLocally().data || {};
-    document.getElementById('editFullName').value = data.fullName || data.name || '';
-    document.getElementById('editAddress').value = data.address || '';
+    document.getElementById('editFullName').value = data.fullName || '';
     document.getElementById('editPhone').value = data.phone || '';
-    document.getElementById('editWhatsApp').value = data.whatsapp || '';
-    document.getElementById('editSubject').value = data.subject || '';
-    document.getElementById('editSchool').value = data.school || '';
-    document.getElementById('editBirthday').value = data.birthday || '';
-    document.getElementById('editNic').value = data.nic || '';
-    document.getElementById('editInstitute').value = data.institute || '';
     openModal('profileModal');
 });
+
 document.getElementById('saveProfileBtn').addEventListener('click', () => {
-    const data = {
-        fullName: document.getElementById('editFullName').value.trim(),
-        address: document.getElementById('editAddress').value.trim(),
-        phone: document.getElementById('editPhone').value.trim(),
-        whatsapp: document.getElementById('editWhatsApp').value.trim(),
-        subject: document.getElementById('editSubject').value.trim(),
-        school: document.getElementById('editSchool').value.trim(),
-        birthday: document.getElementById('editBirthday').value.trim(),
-        nic: document.getElementById('editNic').value.trim(),
-        institute: document.getElementById('editInstitute').value.trim()
-    };
-    saveProfile(data);
+    saveProfile(
+        document.getElementById('editFullName').value.trim(),
+        document.getElementById('editPhone').value.trim()
+    );
 });
 
 // ============================================================
 // SIDEBAR NAVIGATION
 // ============================================================
+function navigateTo(section) {
+    document.querySelectorAll('.section-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.sidebar .nav-item').forEach(el => el.classList.remove('active'));
+
+    const target = document.getElementById('section-' + section);
+    if (target) target.classList.remove('hidden');
+
+    const navItem = document.querySelector(`.sidebar .nav-item[data-section="${section}"]`);
+    if (navItem) navItem.classList.add('active');
+}
+window.navigateTo = navigateTo;
+
 document.querySelectorAll('.sidebar .nav-item[data-section]').forEach(item => {
     item.addEventListener('click', function() {
-        document.querySelectorAll('.sidebar .nav-item').forEach(el => el.classList.remove('active'));
-        this.classList.add('active');
-        document.querySelectorAll('.section-content').forEach(el => el.classList.add('hidden'));
-        const target = document.getElementById('section-' + this.dataset.section);
-        if (target) target.classList.remove('hidden');
-        if (this.dataset.section === 'calendar') renderCalendar();
-        if (this.dataset.section === 'notice') fetchGoogleSheetsNotices();
-        if (this.dataset.section === 'admin') {
-            // Load admin data if user is admin
-            const currentUser = auth.currentUser;
-            if (currentUser && currentUser.email === 'gayanthalochana28@gmail.com') {
-                loadAdminData();
-            } else {
-                alert('Admin access required.');
-                // Navigate back to home
-                document.querySelector('.nav-item[data-section="home"]').click();
-            }
-        }
+        navigateTo(this.dataset.section);
     });
 });
 
@@ -776,358 +653,19 @@ document.getElementById('logoutBtn').addEventListener('click', async (e) => {
     clearUserLocally();
     dashScreen.classList.add('hidden');
     authScreen.classList.remove('hidden');
-    notifBar.style.display = 'none';
-    if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-        isRunning = false;
-    }
 });
 
 // ============================================================
 // MODAL HELPERS
 // ============================================================
 function openModal(id) { document.getElementById(id).classList.add('active'); }
+
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 window.openModal = openModal;
 window.closeModal = closeModal;
-document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); }));
-
-// ============================================================
-// CALENDAR SYSTEM
-// ============================================================
-let currentDate = new Date();
-let currentMonth = currentDate.getMonth();
-let currentYear = currentDate.getFullYear();
-let selectedDate = null;
-let eventsCache = {};
-let editingEventKey = null;
-
-const calendarGrid = document.getElementById('calendarGrid');
-const calendarMonthYear = document.getElementById('calendarMonthYear');
-const eventList = document.getElementById('eventList');
-const eventSearchInput = document.getElementById('eventSearchInput');
-
-function loadEvents(uid) {
-    const eventsRef = ref(database, `events/${uid}`);
-    onValue(eventsRef, (snapshot) => {
-        eventsCache = snapshot.val() || {};
-        const calendarSection = document.getElementById('section-calendar');
-        if (!calendarSection.classList.contains('hidden')) {
-            renderCalendar();
-            renderEventsForDate(selectedDate || currentDate);
-        }
-    }, (error) => {
-        if (error.message.includes('PERMISSION_DENIED')) {
-            alert('❌ Permission denied to read events. Please check Firebase security rules.');
-        }
-        console.error('Load events error:', error);
-    });
-}
-
-async function saveEvent(uid, eventData) {
-    const eventsRef = ref(database, `events/${uid}`);
-    const newEventRef = push(eventsRef);
-    try {
-        await set(newEventRef, { ...eventData, createdAt: new Date().toISOString() });
-        return newEventRef.key;
-    } catch (err) {
-        if (err.message && err.message.includes('PERMISSION_DENIED')) {
-            alert('❌ Permission denied to save event. Please check Firebase security rules.');
-        } else {
-            alert('Error saving event: ' + err.message);
-        }
-        throw err;
-    }
-}
-
-async function updateEvent(uid, eventKey, eventData) {
-    const eventRef = ref(database, `events/${uid}/${eventKey}`);
-    try {
-        await update(eventRef, eventData);
-    } catch (err) {
-        if (err.message && err.message.includes('PERMISSION_DENIED')) {
-            alert('❌ Permission denied to update event. Please check Firebase security rules.');
-        } else {
-            alert('Error updating event: ' + err.message);
-        }
-        throw err;
-    }
-}
-
-async function deleteEvent(uid, eventKey) {
-    const eventRef = ref(database, `events/${uid}/${eventKey}`);
-    try {
-        await remove(eventRef);
-    } catch (err) {
-        if (err.message && err.message.includes('PERMISSION_DENIED')) {
-            alert('❌ Permission denied to delete event. Please check Firebase security rules.');
-        } else {
-            alert('Error deleting event: ' + err.message);
-        }
-        throw err;
-    }
-}
-
-function getEventsForDate(date) {
-    const dateStr = date.toISOString().split('T')[0];
-    const results = [];
-    const userData = getUserLocally();
-    if (!userData.uid) return results;
-    const events = eventsCache || {};
-    for (const [key, event] of Object.entries(events)) {
-        if (event.date === dateStr) results.push({ key, ...event });
-    }
-    return results;
-}
-
-function getAllEvents() {
-    const results = [];
-    const userData = getUserLocally();
-    if (!userData.uid) return results;
-    const events = eventsCache || {};
-    for (const [key, event] of Object.entries(events)) {
-        results.push({ key, ...event });
-    }
-    return results;
-}
-
-function renderCalendar() {
-    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
-    calendarMonthYear.textContent = new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    while (calendarGrid.children.length > 7) {
-        calendarGrid.removeChild(calendarGrid.lastChild);
-    }
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    for (let i = firstDay - 1; i >= 0; i--) {
-        const day = daysInPrevMonth - i;
-        const cell = document.createElement('div');
-        cell.className = 'day-cell other-month';
-        cell.innerHTML = `<span class="day-number">${day}</span>`;
-        calendarGrid.appendChild(cell);
-    }
-    for (let day = 1; day <= daysInMonth; day++) {
-        const cell = document.createElement('div');
-        const dateObj = new Date(currentYear, currentMonth, day);
-        const dateStr = dateObj.toISOString().split('T')[0];
-        const isToday = dateStr === todayStr;
-        cell.className = 'day-cell';
-        if (isToday) cell.classList.add('today');
-        const events = getEventsForDate(dateObj);
-        if (events.length > 0) {
-            cell.classList.add('has-event');
-        }
-        cell.innerHTML = `<span class="day-number">${day}</span>`;
-        if (events.length > 0) {
-            cell.innerHTML += `<span class="event-dot"></span>`;
-        }
-        cell.addEventListener('click', () => {
-            selectedDate = dateObj;
-            renderEventsForDate(dateObj);
-            document.querySelectorAll('.day-cell').forEach(el => el.style.border = 'none');
-            cell.style.border = '2px solid var(--primary)';
-            cell.style.borderRadius = '8px';
-            document.getElementById('eventDate').value = dateStr;
-            document.getElementById('eventTitle').value = '';
-            document.getElementById('eventDesc').value = '';
-            document.getElementById('eventTime').value = '';
-            document.getElementById('eventType').value = 'work';
-            document.getElementById('eventModalTitle').textContent = '📝 Add Event';
-            document.getElementById('saveEventBtn').textContent = '💾 Save Event';
-            document.getElementById('deleteEventBtn').style.display = 'none';
-            editingEventKey = null;
-            openModal('eventModal');
-        });
-        calendarGrid.appendChild(cell);
-    }
-    const totalCells = calendarGrid.children.length;
-    const remaining = 42 - totalCells;
-    for (let day = 1; day <= remaining; day++) {
-        const cell = document.createElement('div');
-        cell.className = 'day-cell other-month';
-        cell.innerHTML = `<span class="day-number">${day}</span>`;
-        calendarGrid.appendChild(cell);
-    }
-    if (!selectedDate) {
-        selectedDate = today;
-        renderEventsForDate(today);
-    }
-}
-
-function renderEventsForDate(date) {
-    const events = getEventsForDate(date);
-    const dateStr = date.toISOString().split('T')[0];
-    if (events.length === 0) {
-        eventList.innerHTML = `<div class="no-events">📭 No events for ${dateStr}. Click a date to add one.</div>`;
-        return;
-    }
-    let html = '';
-    const typeEmojis = { 'work': '💼', 'task': '✅', 'class': '📚', 'other': '📌' };
-    const typeLabels = { 'work': 'Work', 'task': 'Task', 'class': 'Class', 'other': 'Other' };
-    events.forEach(event => {
-        const emoji = typeEmojis[event.type] || '📌';
-        const label = typeLabels[event.type] || 'Other';
-        html += `
-            <div class="event-item" data-key="${event.key}">
-                <div class="event-info">
-                    <div class="event-title">${emoji} ${event.title || 'Untitled'}</div>
-                    <div class="event-desc">${event.description || ''} ${event.time ? '· ' + event.time : ''}</div>
-                    <div class="event-time">${label}</div>
-                </div>
-                <div style="display:flex;gap:0.3rem;">
-                    <button class="event-edit" data-key="${event.key}" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:0.9rem;">✏️</button>
-                    <button class="event-delete" data-key="${event.key}" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.9rem;">🗑️</button>
-                </div>
-            </div>
-        `;
-    });
-    eventList.innerHTML = html;
-    document.querySelectorAll('.event-edit').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const key = btn.dataset.key;
-            const userData = getUserLocally();
-            if (!userData.uid) return;
-            const event = (eventsCache || {})[key];
-            if (!event) return;
-            editingEventKey = key;
-            document.getElementById('eventDate').value = event.date || '';
-            document.getElementById('eventTitle').value = event.title || '';
-            document.getElementById('eventDesc').value = event.description || '';
-            document.getElementById('eventTime').value = event.time || '';
-            document.getElementById('eventType').value = event.type || 'work';
-            document.getElementById('eventModalTitle').textContent = '✏️ Edit Event';
-            document.getElementById('saveEventBtn').textContent = '💾 Update Event';
-            document.getElementById('deleteEventBtn').style.display = 'block';
-            openModal('eventModal');
-        });
-    });
-    document.querySelectorAll('.event-delete').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const key = btn.dataset.key;
-            const userData = getUserLocally();
-            if (!userData.uid) return;
-            if (confirm('Delete this event?')) {
-                try {
-                    await deleteEvent(userData.uid, key);
-                    loadEvents(userData.uid);
-                } catch (err) { console.error(err); }
-            }
-        });
-    });
-}
-
-document.getElementById('prevMonthBtn').addEventListener('click', () => {
-    if (currentMonth === 0) { currentMonth = 11; currentYear--; } else { currentMonth--; }
-    renderCalendar();
-});
-document.getElementById('nextMonthBtn').addEventListener('click', () => {
-    if (currentMonth === 11) { currentMonth = 0; currentYear++; } else { currentMonth++; }
-    renderCalendar();
-});
-document.getElementById('todayBtn').addEventListener('click', () => {
-    const today = new Date();
-    currentMonth = today.getMonth();
-    currentYear = today.getFullYear();
-    selectedDate = today;
-    renderCalendar();
-});
-
-document.getElementById('saveEventBtn').addEventListener('click', async () => {
-    const userData = getUserLocally();
-    if (!userData.uid) { alert('Please login first.'); return; }
-    const date = document.getElementById('eventDate').value;
-    const title = document.getElementById('eventTitle').value.trim();
-    const description = document.getElementById('eventDesc').value.trim();
-    const time = document.getElementById('eventTime').value;
-    const type = document.getElementById('eventType').value;
-    if (!date) { alert('Please select a date.'); return; }
-    if (!title) { alert('Please enter a title.'); return; }
-    const eventData = { date, title, description, time, type };
-    const saveBtn = document.getElementById('saveEventBtn');
-    saveBtn.disabled = true;
-    saveBtn.textContent = '⏳ Saving...';
-    saveBtn.classList.add('btn-loading');
-    try {
-        if (editingEventKey) {
-            await updateEvent(userData.uid, editingEventKey, eventData);
-        } else {
-            await saveEvent(userData.uid, eventData);
-        }
-        closeModal('eventModal');
-        loadEvents(userData.uid);
-        renderCalendar();
-        if (selectedDate) renderEventsForDate(selectedDate);
-        alert(editingEventKey ? 'Event updated!' : 'Event saved!');
-        editingEventKey = null;
-    } catch (err) { console.error(err); } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = editingEventKey ? '💾 Update Event' : '💾 Save Event';
-        saveBtn.classList.remove('btn-loading');
-    }
-});
-document.getElementById('deleteEventBtn').addEventListener('click', async () => {
-    if (!editingEventKey) return;
-    const userData = getUserLocally();
-    if (!userData.uid) return;
-    if (confirm('Delete this event?')) {
-        try {
-            await deleteEvent(userData.uid, editingEventKey);
-            closeModal('eventModal');
-            loadEvents(userData.uid);
-            renderCalendar();
-            if (selectedDate) renderEventsForDate(selectedDate);
-            editingEventKey = null;
-        } catch (err) { console.error(err); }
-    }
-});
-
-// ============================================================
-// SEARCH EVENTS
-// ============================================================
-document.getElementById('searchEventsBtn').addEventListener('click', () => {
-    const query = eventSearchInput.value.trim().toLowerCase();
-    if (!query) { if (selectedDate) renderEventsForDate(selectedDate); return; }
-    const allEvents = getAllEvents();
-    const filtered = allEvents.filter(e =>
-        (e.title && e.title.toLowerCase().includes(query)) ||
-        (e.description && e.description.toLowerCase().includes(query)) ||
-        (e.type && e.type.toLowerCase().includes(query)) ||
-        (e.date && e.date.includes(query))
-    );
-    if (filtered.length === 0) {
-        eventList.innerHTML = `<div class="no-events">🔍 No events found matching "${query}"</div>`;
-        return;
-    }
-    const typeEmojis = { 'work': '💼', 'task': '✅', 'class': '📚', 'other': '📌' };
-    const typeLabels = { 'work': 'Work', 'task': 'Task', 'class': 'Class', 'other': 'Other' };
-    let html = `<div style="margin-bottom:0.5rem;color:var(--text-gray);font-size:0.8rem;">🔍 Found ${filtered.length} results for "${query}"</div>`;
-    filtered.forEach(event => {
-        const emoji = typeEmojis[event.type] || '📌';
-        const label = typeLabels[event.type] || 'Other';
-        html += `
-            <div class="event-item">
-                <div class="event-info">
-                    <div class="event-title">${emoji} ${event.title || 'Untitled'}</div>
-                    <div class="event-desc">📅 ${event.date || ''} ${event.time ? '· ' + event.time : ''}</div>
-                    <div class="event-time">${label}</div>
-                </div>
-            </div>
-        `;
-    });
-    eventList.innerHTML = html;
-});
-document.getElementById('clearSearchBtn').addEventListener('click', () => {
-    eventSearchInput.value = '';
-    if (selectedDate) renderEventsForDate(selectedDate);
-});
-eventSearchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('searchEventsBtn').click();
-});
+document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+}));
 
 // ============================================================
 // CHATBOT
@@ -1146,10 +684,9 @@ chatToggle.addEventListener('click', () => {
         const userData = getUserLocally();
         if (userData.data?.fullName) {
             const lastMsg = chatMessages.lastElementChild;
-            if (lastMsg && lastMsg.classList.contains('bot') && lastMsg.innerText.includes('Hi!')) {
-                // already greeted
-            } else {
-                addMessage(`👋 Welcome back, ${userData.data.fullName}! I'm your ICT assistant. How can I help?`, 'bot', '🤖 Assistant');
+            if (!lastMsg || !lastMsg.classList.contains('bot') || !lastMsg.innerText.includes('Hi!')) {
+                addMessage(`👋 Welcome back, ${userData.data.fullName}! I'm your ICT assistant. How can I help?`,
+                    'bot', '🤖 Assistant');
             }
         }
     }
@@ -1187,38 +724,17 @@ function hideTypingIndicator() {
 
 function getBotReply(input) {
     const lower = input.toLowerCase();
-    const context = chatContext.map(c => c.text).join(' ').toLowerCase();
-
     if (lower.includes('class') || lower.includes('day') || lower.includes('schedule'))
         return '📅 Class days: Monday, Wednesday, Friday at 6:30 PM. All sessions are recorded.';
-    if (lower.includes('past paper') || lower.includes('paper') || lower.includes('exam'))
-        return '📄 Past Papers: https://ictfromabc.com/public-dashboard/papers/al (A/L ICT)';
-    if (lower.includes('fee') || lower.includes('price') || lower.includes('cost') || lower.includes('payment'))
-        return '💰 Course fees: LKR 15,000 per year. Payment details available in the Payments section. Contact 071 455 5513 for more info.';
-    if (lower.includes('contact') || lower.includes('phone') || lower.includes('help'))
-        return '📞 Phone: 071 455 5513 | Email: info@ictfromabc.com | Visit: https://ictfromabc.com';
-    if (lower.includes('profile') || lower.includes('update') || lower.includes('photo'))
-        return '👤 You can update your profile and upload a profile photo from the Profile section. Click the camera icon on your picture to upload.';
-    if (lower.includes('otp') || lower.includes('password') || lower.includes('reset'))
-        return '🔑 Use "Forgot Password" on the login page to reset with OTP. The OTP will be sent to your phone (demo code shown in console).';
-    if (lower.includes('institute') || lower.includes('school') || lower.includes('academy'))
-        return '🏫 We partner with Sakya Academy, Yahansa, Nanik, Sipwin, and IMS Kandy. Check the Institutes section for details!';
-    if (lower.includes('calendar') || lower.includes('event') || lower.includes('task'))
-        return '📅 Use the Calendar section to add work hours, tasks, and class dates. You can search and manage all your events!';
-    if (lower.includes('notice') || lower.includes('announcement') || lower.includes('board'))
-        return '📢 Check the Notice Board section for announcements and updates from the admin!';
-    if (lower.includes('timer') || lower.includes('analyzer') || lower.includes('work'))
-        return '⏱️ Use the Work Time Analyzer to track your study sessions. Start, stop, and reset to monitor your productivity!';
-    if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey'))
+    if (lower.includes('admin') || lower.includes('course') || lower.includes('pdf') || lower.includes('student'))
+        return '👑 Admin panel: Manage courses, PDFs, and students. Accessible only to administrators.';
+    if (lower.includes('profile') || lower.includes('update'))
+        return '👤 You can update your profile from the Profile section.';
+    if (lower.includes('hello') || lower.includes('hi'))
         return '👋 Hello! How can I assist you with your ICT studies today?';
-    if (lower.includes('thanks') || lower.includes('thank you'))
+    if (lower.includes('thanks'))
         return '😊 You\'re welcome! Let me know if you need anything else.';
-    if (lower.includes('permission') || lower.includes('error') || lower.includes('denied'))
-        return '🔐 If you see a permission error, check your Firebase security rules. They should allow authenticated users to read/write their own data.';
-    if (lower.includes('subject') || lower.includes('topics'))
-        return '📚 We cover Mathematics, Physics, Chemistry, and ICT. Check the Study Topics Overview on your dashboard for detailed progress.';
-
-    return `🤔 I can help with class schedules, past papers, fees, contact info, institutes, calendar events, notice board, work analyzer, and profile updates. Could you clarify your question?`;
+    return `🤔 I can help with class schedules, courses, PDFs, profile updates, and admin tasks. Could you clarify your question?`;
 }
 
 function handleChatInput() {
@@ -1252,260 +768,8 @@ document.addEventListener('click', (e) => {
 });
 
 // ============================================================
-// ADMIN FUNCTIONS
-// ============================================================
-let adminUsersCache = {};
-let adminEditingUserKey = null;
-
-// Load admin data when admin tab is opened or refresh buttons clicked
-async function loadAdminData() {
-    const currentUser = auth.currentUser;
-    if (!currentUser || currentUser.email !== 'gayanthalochana28@gmail.com') {
-        alert('Admin access required.');
-        return;
-    }
-    // Load users
-    await loadAdminUsers();
-    // Load notices
-    loadAdminNotices();
-    // Load events
-    loadAdminEvents();
-    // Update stats
-    updateAdminStats();
-}
-
-async function loadAdminUsers() {
-    const usersRef = ref(database, 'users');
-    try {
-        const snapshot = await get(usersRef);
-        const users = snapshot.val() || {};
-        adminUsersCache = users;
-        const tbody = document.getElementById('adminUsersBody');
-        const keys = Object.keys(users);
-        if (keys.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-gray);">No users found.</td></tr>`;
-            return;
-        }
-        let html = '';
-        keys.forEach(uid => {
-            const u = users[uid];
-            const name = u.fullName || u.name || 'Unknown';
-            const phone = u.phone || '-';
-            const batch = u.batch || 'N/A';
-            // Determine role: if email matches admin or if role field says admin
-            let role = 'user';
-            if (u.email === 'gayanthalochana28@gmail.com' || u.role === 'admin') role = 'admin';
-            const roleBadge = `<span class="role-badge ${role}">${role}</span>`;
-            html += `
-                <tr>
-                    <td>${name}</td>
-                    <td>${phone}</td>
-                    <td>${roleBadge}</td>
-                    <td>${batch}</td>
-                    <td style="text-align:center;">
-                        <div class="actions" style="display:flex;justify-content:center;gap:0.3rem;">
-                            <button class="edit-btn" data-uid="${uid}" title="Edit User">✏️</button>
-                            <button class="delete-btn" data-uid="${uid}" title="Delete User">🗑️</button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-        tbody.innerHTML = html;
-
-        // Attach event listeners for edit/delete
-        tbody.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const uid = btn.dataset.uid;
-                const user = adminUsersCache[uid];
-                if (user) {
-                    adminEditingUserKey = uid;
-                    document.getElementById('adminEditName').value = user.fullName || user.name || '';
-                    document.getElementById('adminEditPhone').value = user.phone || '';
-                    document.getElementById('adminEditBatch').value = user.batch || '';
-                    const role = (user.email === 'gayanthalochana28@gmail.com' || user.role === 'admin') ? 'admin' : 'user';
-                    document.getElementById('adminEditRole').value = role;
-                    openModal('adminEditUserModal');
-                }
-            });
-        });
-        tbody.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const uid = btn.dataset.uid;
-                if (uid === auth.currentUser?.uid) {
-                    alert('You cannot delete your own admin account.');
-                    return;
-                }
-                if (confirm(`Delete user ${adminUsersCache[uid]?.fullName || 'Unknown'}?`)) {
-                    try {
-                        await remove(ref(database, `users/${uid}`));
-                        // Also remove their events?
-                        await remove(ref(database, `events/${uid}`));
-                        alert('User and associated data deleted.');
-                        loadAdminUsers();
-                        updateAdminStats();
-                    } catch (err) {
-                        alert('Error deleting user: ' + err.message);
-                    }
-                }
-            });
-        });
-    } catch (err) {
-        console.error('Error loading users:', err);
-        document.getElementById('adminUsersBody').innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-gray);">Error loading users: ${err.message}</td></tr>`;
-    }
-}
-
-function loadAdminNotices() {
-    // Since notices come from Google Sheets, we can fetch and display them in admin tab
-    const adminNoticeList = document.getElementById('adminNoticeList');
-    fetch(NOTICE_SHEETS_URL)
-        .then(res => res.text())
-        .then(csvText => {
-            const lines = csvText.split('\n').filter(line => line.trim());
-            if (lines.length < 2) {
-                adminNoticeList.innerHTML = `<div style="color:var(--text-gray);padding:0.5rem;">No notices found in Google Sheet.</div>`;
-                return;
-            }
-            let html = '';
-            for (let i = 1; i < lines.length; i++) {
-                const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-                if (cols.length >= 3) {
-                    const timestamp = cols[0] || '';
-                    const noticeText = cols[1] || '';
-                    const active = cols[2]?.toUpperCase() === 'TRUE' ||
-                        cols[2]?.toUpperCase() === 'YES' ||
-                        cols[2]?.toUpperCase() === '1';
-                    if (noticeText) {
-                        const status = active ? '🟢 Active' : '🔴 Inactive';
-                        html += `
-                            <div class="notice-item" style="border-left-color:${active ? 'var(--primary)' : '#555'};">
-                                <div class="notice-text"><span class="notice-pin">📌</span> ${noticeText}</div>
-                                <div class="notice-time">${timestamp} · ${status}</div>
-                            </div>
-                        `;
-                    }
-                }
-            }
-            if (!html) html = `<div style="color:var(--text-gray);padding:0.5rem;">No notices found.</div>`;
-            adminNoticeList.innerHTML = html;
-        })
-        .catch(err => {
-            adminNoticeList.innerHTML = `<div style="color:var(--text-gray);padding:0.5rem;">Error loading notices: ${err.message}</div>`;
-        });
-}
-
-function loadAdminEvents() {
-    // Load all events from all users (admin can read all)
-    const adminEventList = document.getElementById('adminEventList');
-    const eventsRef = ref(database, 'events');
-    get(eventsRef).then(snapshot => {
-        const allEvents = snapshot.val() || {};
-        let count = 0;
-        let html = '';
-        for (const [uid, userEvents] of Object.entries(allEvents)) {
-            for (const [key, ev] of Object.entries(userEvents)) {
-                count++;
-                const date = ev.date || 'No date';
-                const title = ev.title || 'Untitled';
-                const type = ev.type || 'other';
-                const emoji = { 'work': '💼', 'task': '✅', 'class': '📚', 'other': '📌' }[type] || '📌';
-                html += `
-                    <div class="event-item" style="border-left-color:var(--primary);">
-                        <div class="event-info">
-                            <div class="event-title">${emoji} ${title}</div>
-                            <div class="event-desc">📅 ${date} ${ev.time ? '· ' + ev.time : ''} · User: ${uid}</div>
-                        </div>
-                    </div>
-                `;
-                if (count >= 50) break;
-            }
-            if (count >= 50) break;
-        }
-        if (!html) html = `<div style="color:var(--text-gray);padding:0.5rem;">No events found.</div>`;
-        adminEventList.innerHTML = html;
-        document.getElementById('adminTotalEvents').textContent = count;
-    }).catch(err => {
-        adminEventList.innerHTML = `<div style="color:var(--text-gray);padding:0.5rem;">Error loading events: ${err.message}</div>`;
-    });
-}
-
-function updateAdminStats() {
-    const userCount = Object.keys(adminUsersCache).length;
-    document.getElementById('adminTotalUsers').textContent = userCount;
-    // Notices and events updated in their respective load functions
-}
-
-// Admin refresh buttons
-document.getElementById('adminRefreshUsersBtn').addEventListener('click', loadAdminUsers);
-document.getElementById('adminRefreshNoticesBtn').addEventListener('click', loadAdminNotices);
-document.getElementById('adminRefreshEventsBtn').addEventListener('click', loadAdminEvents);
-
-// Admin save user edit
-document.getElementById('adminSaveUserBtn').addEventListener('click', async () => {
-    if (!adminEditingUserKey) { alert('No user selected.'); return; }
-    const name = document.getElementById('adminEditName').value.trim();
-    const phone = document.getElementById('adminEditPhone').value.trim();
-    const batch = document.getElementById('adminEditBatch').value.trim();
-    const role = document.getElementById('adminEditRole').value;
-    const data = { fullName: name, phone, batch, role };
-    try {
-        await update(ref(database, `users/${adminEditingUserKey}`), data);
-        alert('User updated.');
-        closeModal('adminEditUserModal');
-        loadAdminUsers();
-        updateAdminStats();
-    } catch (err) {
-        alert('Error updating user: ' + err.message);
-    }
-});
-
-// Admin export data
-document.getElementById('adminExportDataBtn').addEventListener('click', () => {
-    const data = {
-        users: adminUsersCache,
-        events: eventsCache,
-        timestamp: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ict_admin_export_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-});
-
-// Admin clear cache
-document.getElementById('adminClearCacheBtn').addEventListener('click', () => {
-    localStorage.removeItem('ict_user_uid');
-    localStorage.removeItem('ict_user_data');
-    localStorage.removeItem('ict_total_seconds');
-    localStorage.removeItem('ict_session_count');
-    alert('Local cache cleared. Please refresh the page.');
-});
-
-// Secret admin trigger: double-click logo
-document.getElementById('secretAdminTrigger').addEventListener('dblclick', () => {
-    const currentUser = auth.currentUser;
-    if (currentUser && currentUser.email === 'gayanthalochana28@gmail.com') {
-        // Show admin nav and navigate to admin
-        document.getElementById('adminNavItem').classList.add('visible');
-        document.querySelector('.nav-item[data-section="admin"]').click();
-    } else {
-        alert('Admin access requires login with admin credentials.');
-    }
-});
-
-// ============================================================
 // INIT
 // ============================================================
 console.log('🔥 Firebase connected!');
-console.log('📢 Notice Board connected to Google Sheets.');
-console.log('📱 Mobile UI optimized for all devices.');
-console.log('🤖 Advanced chatbot with context memory active.');
-console.log('📷 Profile photo upload ready.');
-console.log('⏱️ Work Time Analyzer ready.');
-console.log('👋 Greeting popup ready.');
-console.log('📚 3D Book model added to home page.');
-console.log('⚙️ Admin panel hidden, accessible only to admin email.');
+console.log('👑 Admin: ' + ADMIN_EMAIL);
+console.log('📱 ICT Student Portal with Admin Panel loaded.');
