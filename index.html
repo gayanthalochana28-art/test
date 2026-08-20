@@ -1,3 +1,6 @@
+<!-- ============================================================
+     FILE: index.html
+     ============================================================ -->
 <!DOCTYPE html>
 <html lang="en" class="poppins_e1585a45-module__UP0NmG__variable h-full antialiased">
 <head>
@@ -5,26 +8,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
     <title>ictfromabc · Student Portal</title>
 
-    <!-- Favicon -->
+    <!-- ===== WEBSITE DP / FAVICON ===== -->
     <link rel="icon" href="loginmb.png" type="image/png" sizes="256x256" />
     <link rel="apple-touch-icon" href="loginpc.png" sizes="180x180" />
     <meta name="theme-color" content="#0a0a0a" />
 
-    <!-- Font Preloads -->
-    <link rel="preload" href="/_next/static/immutable/media/47fe1b7cd6e6ed85-s.p.1n2oi-d4a-xww.woff2" as="font" crossorigin="" type="font/woff2" />
-    <link rel="preload" href="/_next/static/immutable/media/829ba4228c966254-s.p.0zvxjg5nywxta.woff2" as="font" crossorigin="" type="font/woff2" />
-    <link rel="preload" href="/_next/static/immutable/media/8e6fa89aa22d24ec-s.p.1bg6trwi21i5q.woff2" as="font" crossorigin="" type="font/woff2" />
-    <link rel="preload" href="/_next/static/immutable/media/a218039a3287bcfd-s.p.17e3l4txdrufi.woff2" as="font" crossorigin="" type="font/woff2" />
-    <link rel="preload" href="/_next/static/immutable/media/e2334d715941921e-s.p.2g9xiodaln20i.woff2" as="font" crossorigin="" type="font/woff2" />
+    <!-- ===== EXTERNAL STYLESHEET ===== -->
+    <link rel="stylesheet" href="style.css" />
 
-    <!-- Image Preloads -->
-    <link rel="preload" href="loginmb.png" as="image" />
-    <link rel="preload" href="loginpc.png" as="image" />
-    <link rel="preload" href="logo.png" as="image" />
-    <link rel="preload" href="Profile.png" as="image" />
-    <link rel="preload" href="Transparent_3D_book_render.png" as="image" />
-
-    <!-- Firebase Import Map -->
+    <!-- ===== FIREBASE SDK (Import Map) ===== -->
     <script type="importmap">
         {
             "imports": {
@@ -36,36 +28,11 @@
             }
         }
     </script>
-
-    <!-- External CSS -->
-    <link rel="stylesheet" href="style.css" />
-
-    <!-- Additional inline styles for admin (already in style.css, but kept here for safety) -->
-    <style>
-        /* Extra admin styles are included in style.css */
-    </style>
 </head>
 <body>
 
-    <!-- ===== PARTICLE CANVAS ===== -->
+    <!-- ===== PARTICLE CANVAS (Animated Background) ===== -->
     <canvas id="particleCanvas"></canvas>
-
-    <!-- ===== NOTIFICATION BAR ===== -->
-    <div id="notificationBar" class="notification-bar">
-        <div class="marquee" id="notifMarquee"><span>📢 Loading notifications...</span></div>
-        <button class="close-notif" id="closeNotifBtn">✕</button>
-    </div>
-
-    <!-- ===== GREETING POPUP ===== -->
-    <div id="greetingPopup" class="greeting-overlay">
-        <div class="greeting-card">
-            <div class="greeting-icon" id="greetingIcon">🌅</div>
-            <div class="greeting-title" id="greetingTitle">Good Morning, <span id="greetingName">Student</span>!</div>
-            <div class="greeting-sub" id="greetingSub">Welcome to ictfromabc</div>
-            <div class="greeting-time" id="greetingTime">⏰ Today is a great day to learn!</div>
-            <button class="greeting-btn" onclick="closeGreeting()">🚀 Let's Get Started</button>
-        </div>
-    </div>
 
     <!-- ===== ABC WALLPAPER ===== -->
     <div class="abc-wallpaper">
@@ -83,65 +50,56 @@
                 <div class="logo-mobile"><span>ict</span><span>fromabc</span></div>
                 <div class="subtitle-sinhala">ලංකාවේ විශාලතම තොරතුරු තාක්ෂණික පන්තිය</div>
                 <div class="subtitle-english">ලංකාවේ වැඩිම A හා B සාමාර්ථ සහිත තොරතුරු තාක්ෂණ පන්තිය</div>
-                <div class="input-group"><label>Enter Your Phone Number</label><input type="text" id="loginPhoneInput" placeholder="07X XXX XXXX" /></div>
+                <div class="input-group"><label>Email Address</label><input type="email" id="loginEmailInput" placeholder="Enter your email" /></div>
                 <div class="input-group"><label>Password</label><input type="password" id="loginPasswordInput" placeholder="Enter your password" /></div>
                 <button id="loginBtn" class="login-btn">🔐 Login</button>
                 <div class="divider">or</div>
                 <button id="googleBtn" class="google-btn"><svg viewBox="0 0 18 18"><path fill="#fff" d="M17.64 9.2c0-.6-.1-1.2-.2-1.8h-8v3.4h4.9c-.2 1.2-.9 2.1-1.8 2.8v2.3h2.9c1.7-1.6 2.7-3.9 2.7-6.7z"/><path fill="#fff" d="M9.4 17.3c2.3 0 4.3-.8 5.7-2.1l-2.9-2.3c-.8.5-1.9.8-3 .8-2.2 0-4.1-1.5-4.8-3.6H1.5v2.4c1.4 2.8 4.3 4.8 7.9 4.8z"/><path fill="#fff" d="M4.6 10.1c-.2-.5-.3-1.1-.3-1.7s.1-1.2.3-1.7V4.3H1.5C.9 5.5.5 6.9.5 8.4s.4 2.9 1 4.1l3.1-2.4z"/><path fill="#fff" d="M9.4 3.6c1.2 0 2.3.4 3.2 1.2l2.4-2.4C13.7 1.1 11.7 0 9.4 0 5.8 0 2.9 2 1.5 4.3l3.1 2.4c.7-2.1 2.6-3.6 4.8-3.6z"/></svg> Sign in with Google</button>
-                <div class="links"><a id="signupLink">Don't have an account? Create Account</a><span class="sep">·</span><a id="forgotLink">Forgot Password?</a></div>
-                <div class="help-section"><div class="help-label">Need Help?</div><div class="phone">📞 Phone: 0751168206</div><div class="social-icons">
-                        <a href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg></a>
-                        <a href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></a>
-                        <a href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
-                    </div><div class="copyright">©2026. All rights reserved.</div>
-                </div>
+                <div class="links"><a id="signupLink">Create Account</a><span class="sep">·</span><a id="forgotLink">Forgot Password?</a></div>
             </div>
         </div>
     </div>
 
     <!-- ===== DASHBOARD ===== -->
     <div id="dashboardScreen" class="dashboard-container hidden">
+
+        <!-- ===== TOP HEADER ===== -->
+        <div class="top-header">
+            <div class="brand"><span>ict</span><span>fromabc</span></div>
+            <div class="user-badge" id="headerUserBadge">
+                <div class="avatar" id="headerAvatar"><img src="Profile.png" alt="Profile" /></div>
+                <span class="name" id="headerName">Student</span>
+                <span class="role-tag" id="headerRole">Student</span>
+            </div>
+        </div>
+
+        <!-- ===== SIDEBAR ===== -->
         <div class="sidebar" id="sidebar">
-            <div class="logo secret-admin-trigger" id="secretAdminTrigger" title="Double-click for admin"><span>ict</span><span>fromabc</span></div>
+            <div class="logo"><span>ict</span><span>fromabc</span></div>
+            <div class="role-badge" id="roleBadge">Student</div>
             <div class="section-label">MAIN</div>
             <div class="nav-item active" data-section="home"><span class="icon">🏠</span> Home</div>
-            <div class="nav-item" data-section="notice"><span class="icon">📢</span> Notice Board</div>
-            <div class="nav-item" data-section="analyzer"><span class="icon">⏱️</span> Work Analyzer</div>
-            <div class="nav-item" data-section="lessons"><span class="icon">📚</span> My Lessons</div>
-            <div class="nav-item" data-section="practical"><span class="icon">🛠</span> Practical Sessions</div>
             <div class="nav-item" data-section="profile"><span class="icon">👤</span> Profile</div>
-            <div class="nav-item" data-section="institutes"><span class="icon">🏫</span> Institutes</div>
-            <div class="nav-item" data-section="calendar"><span class="icon">📅</span> Calendar</div>
-            <!-- ===== ADMIN NAV (hidden by default) ===== -->
-            <div class="nav-item admin-nav" data-section="admin" id="adminNavItem"><span class="icon">⚙️</span> <span id="adminNavLabel">Admin Panel</span></div>
-            <div class="section-label">A/L COURSES</div>
-            <div class="nav-item" data-section="al2028"><span class="icon">📘</span> A/L 2028</div>
-            <div class="nav-item" data-section="al2027"><span class="icon">📗</span> A/L 2027</div>
-            <div class="nav-item" data-section="al2026"><span class="icon">📕</span> A/L 2026</div>
-            <div class="nav-item" data-section="alvideo"><span class="icon">🎥</span> AL Video Modules</div>
-            <div class="nav-item" data-section="git"><span class="icon">🔗</span> GIT</div>
-            <div class="section-label">O/L COURSES</div>
-            <div class="nav-item" data-section="ol2025"><span class="icon">📙</span> O/L 2025 (G10)</div>
-            <div class="nav-item" data-section="ol2024"><span class="icon">📒</span> O/L 2024 (G11)</div>
-            <div class="nav-item" data-section="olvideo"><span class="icon">🎬</span> OL Video Modules</div>
-            <div class="nav-item" data-section="tutes"><span class="icon">📄</span> Tutes</div>
-            <div class="section-label">PAYMENTS & SOCIALS</div>
-            <div class="nav-item" data-section="payments"><span class="icon">💳</span> Payments</div>
-            <div class="nav-item" data-section="telegram"><span class="icon">📱</span> Telegram Groups</div>
-            <div class="nav-item" data-section="socials"><span class="icon">🌐</span> Social Media</div>
-            <div class="nav-item" data-section="bank"><span class="icon">🏦</span> Bank Details</div>
+
+            <!-- Admin sections (hidden by default) -->
+            <div id="adminSections" style="display:none;">
+                <div class="section-label">ADMIN PANEL</div>
+                <div class="nav-item" data-section="admin-dashboard"><span class="icon">📊</span> Dashboard</div>
+                <div class="nav-item" data-section="admin-courses"><span class="icon">📘</span> Courses</div>
+                <div class="nav-item" data-section="admin-pdfs"><span class="icon">📄</span> PDFs</div>
+                <div class="nav-item" data-section="admin-students"><span class="icon">👥</span> Students</div>
+            </div>
+
             <div class="nav-item logout-btn" id="logoutBtn"><span class="icon">🚪</span> Logout</div>
         </div>
 
+        <!-- ===== MAIN CONTENT ===== -->
         <div class="main-content" id="mainContent">
-            <!-- ===== HOME ===== -->
+
+            <!-- ===== STUDENT: HOME ===== -->
             <div id="section-home" class="section-content">
-                <div class="top-bar">
+                <div class="top-bar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
                     <h1>Welcome back, <span id="dashName">Student</span>! 🎉</h1>
-                    <div class="user-badge">
-                        <div class="avatar" id="dashAvatar"><img src="Profile.png" alt="Profile" id="profileAvatarImg" /></div>
-                        <span class="name" id="dashNameBadge">Student</span>
-                    </div>
                 </div>
                 <div class="stats-grid">
                     <div class="stat-card"><div class="label">Lessons Completed</div><div class="value">24</div><div class="change">+8 this month</div></div>
@@ -149,103 +107,30 @@
                     <div class="stat-card"><div class="label">Progress</div><div class="value">78%</div><div class="change">+6% improvement</div></div>
                     <div class="stat-card"><div class="label">Papers Completed</div><div class="value">12</div><div class="change">/ 20 total</div></div>
                 </div>
-                <div class="two-col">
-                    <div class="subject-progress"><div class="title">📊 Study Topics Overview</div>
-                        <div class="subject-item"><span class="name">Mathematics</span><div class="bar-track"><div class="bar-fill" style="width:78%"></div></div><span class="percent">78%</span></div>
-                        <div class="subject-item"><span class="name">Physics</span><div class="bar-track"><div class="bar-fill" style="width:65%"></div></div><span class="percent">65%</span></div>
-                        <div class="subject-item"><span class="name">Chemistry</span><div class="bar-track"><div class="bar-fill" style="width:55%"></div></div><span class="percent">55%</span></div>
-                        <div class="subject-item"><span class="name">ICT</span><div class="bar-track"><div class="bar-fill" style="width:85%"></div></div><span class="percent">85%</span></div>
-                        <div class="subject-item"><span class="name">Other</span><div class="bar-track"><div class="bar-fill" style="width:30%"></div></div><span class="percent">30%</span></div>
-                    </div>
-                    <div class="upcoming-sessions"><div class="title">📅 Upcoming Sessions</div>
-                        <div class="session-item"><div class="date-badge"><div class="day">31</div><div class="month">May</div></div><div class="info"><div class="title">Physics Practical</div><div class="desc">Electromagnetism</div><div class="time">⏰ 2:00 PM - 4:30 PM</div></div></div>
-                        <div class="session-item"><div class="date-badge"><div class="day">31</div><div class="month">May</div></div><div class="info"><div class="title">Maths Tute</div><div class="desc">Calculus Applications</div><div class="time">⏰ 6:00 PM - 8:00 PM</div></div></div>
-                        <div class="session-item"><div class="date-badge"><div class="day">31</div><div class="month">May</div></div><div class="info"><div class="title">ICT Practical</div><div class="desc">Database Management</div><div class="time">⏰ 3:00 PM - 5:00 PM</div></div></div>
-                    </div>
-                </div>
-                <div class="continue-learning"><div class="title">📖 Continue Learning</div><div class="dates"><span class="date-chip">May 1</span><span class="date-chip">May 7</span><span class="date-chip">May 14</span><span class="date-chip">May 21</span><span class="date-chip">May 28</span><span class="date-chip active">May 31</span></div></div>
-                <div style="display:flex;justify-content:flex-end;"><button class="view-details-btn">📊 View Details</button></div>
-                <div class="book-model">
-                    <img src="Transparent_3D_book_render.png" alt="3D Book Model" />
+                <div class="section-card">
+                    <div class="title">📢 Recent Announcements</div>
+                    <div class="list-item">📌 Welcome to the new ictfromabc Student Portal!</div>
+                    <div class="list-item">📌 New practical sessions starting next week</div>
+                    <div class="list-item">📌 A/L 2026 past papers updated</div>
                 </div>
             </div>
 
-            <!-- ===== NOTICE BOARD ===== -->
-            <div id="section-notice" class="section-content hidden">
-                <div class="notice-board">
-                    <div class="title">📢 Notice Board <span class="badge">Live</span></div>
-                    <div id="noticeList">
-                        <div class="notice-item">
-                            <div class="notice-text"><span class="notice-pin">📌</span> Loading notices from Google Sheets...</div>
-                            <div class="notice-time">⏳ Please wait</div>
-                        </div>
-                    </div>
-                    <div class="notice-form">
-                        <input type="text" id="noticeInput" placeholder="📝 Write a notice..." />
-                        <button id="postNoticeBtn">📤 Post</button>
-                    </div>
-                    <div style="margin-top:0.5rem;font-size:0.6rem;color:var(--text-gray);">
-                        💡 Notices are automatically synced from Google Sheets. <a href="#" onclick="fetchGoogleSheetsNotices(); return false;" style="color:var(--primary);">Refresh</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== WORK TIME ANALYZER ===== -->
-            <div id="section-analyzer" class="section-content hidden">
-                <div class="work-analyzer">
-                    <div class="title">⏱️ Work Time Analyzer</div>
-                    <div class="stats-row">
-                        <div class="stat-item">
-                            <div class="stat-number" id="timerDisplay">00:00:00</div>
-                            <div class="stat-label">Current Session</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="totalTimeDisplay">00:00:00</div>
-                            <div class="stat-label">Total Today</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="sessionCount">0</div>
-                            <div class="stat-label">Sessions Today</div>
-                        </div>
-                    </div>
-                    <div class="controls">
-                        <button class="btn-start" id="startTimerBtn">▶ Start Session</button>
-                        <button class="btn-stop" id="stopTimerBtn" disabled>⏹ Stop Session</button>
-                        <button class="btn-reset" id="resetTimerBtn">🔄 Reset Today</button>
-                    </div>
-                    <div class="status" id="timerStatus">
-                        <span class="status-dot inactive" id="statusDot"></span>
-                        <span id="statusText">Not started</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== LESSONS ===== -->
-            <div id="section-lessons" class="section-content hidden"><div class="section-card"><div class="title">📚 My Lessons</div><div class="list-item">📖 Lesson 1: Introduction to ICT</div><div class="list-item">📖 Lesson 2: Data Representation</div><div class="list-item">📖 Lesson 3: Logic Gates</div><div class="list-item">📖 Lesson 4: Computer Networks</div><div class="list-item">📖 Lesson 5: Programming Basics</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">+ 12 more lessons available</div></div></div>
-
-            <!-- ===== PRACTICAL ===== -->
-            <div id="section-practical" class="section-content hidden"><div class="section-card"><div class="title">🛠 Practical Sessions</div><div class="list-item">💻 Python Programming Lab</div><div class="list-item">🌐 Networking Configuration</div><div class="list-item">🗄️ Database Design & SQL</div><div class="list-item">⚡ Electronics & Circuit Design</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Next session: Saturday 9:00 AM</div></div></div>
-
-            <!-- ===== PROFILE ===== -->
+            <!-- ===== STUDENT: PROFILE ===== -->
             <div id="section-profile" class="section-content hidden">
                 <div class="section-card">
                     <div class="title">👤 Your Profile</div>
-                    <div style="display:flex;align-items:center;gap:1.2rem;margin-bottom:0.8rem;flex-wrap:wrap;">
-                        <div style="width:80px;height:80px;border-radius:50%;overflow:hidden;border:3px solid var(--primary);background:var(--bg-input);position:relative;flex-shrink:0;">
+                    <div style="display:flex;align-items:center;gap:1.2rem;margin-bottom:0.8rem;">
+                        <div style="width:70px;height:70px;border-radius:50%;overflow:hidden;border:3px solid var(--primary);background:var(--bg-input);">
                             <img src="Profile.png" alt="Profile" style="width:100%;height:100%;object-fit:cover;" id="profileImgDisplay" />
-                            <label for="profilePhotoInput" class="photo-upload-label" title="Change profile photo">📷</label>
-                            <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;" />
                         </div>
                         <div>
                             <h3 style="margin:0;color:white;" id="profileNameDisplay">Student</h3>
-                            <p style="margin:0;color:var(--text-gray);font-size:0.8rem;" id="profilePhoneDisplay">-</p>
-                            <div id="uploadStatus" style="font-size:0.7rem;color:var(--text-gray);margin-top:0.2rem;"></div>
+                            <p style="margin:0;color:var(--text-gray);font-size:0.8rem;" id="profileEmailDisplay">-</p>
                         </div>
                     </div>
                     <div class="profile-field"><span class="label">Full Name</span><span class="value" id="pFullName">-</span></div>
-                    <div class="profile-field"><span class="label">Phone</span><span class="value" id="pPhone">-</span></div>
-                    <div class="profile-field"><span class="label">A/L Subject</span><span class="value">ICT</span></div>
-                    <div class="profile-field"><span class="label">Batch</span><span class="value">A/L 2026</span></div>
+                    <div class="profile-field"><span class="label">Email</span><span class="value" id="pEmail">-</span></div>
+                    <div class="profile-field"><span class="label">Role</span><span class="value" id="pRole">Student</span></div>
                     <div style="margin-top:1rem;display:flex;gap:0.8rem;flex-wrap:wrap;">
                         <button class="home-btn" id="editProfileBtn">✏️ Edit Profile</button>
                         <button class="home-btn home-btn-outline" id="changePasswordBtn">🔐 Change Password</button>
@@ -253,217 +138,148 @@
                 </div>
             </div>
 
-            <!-- ===== INSTITUTES ===== -->
-            <div id="section-institutes" class="section-content hidden">
-                <div class="section-card" style="border-color:var(--primary);">
-                    <div class="title">🏫 Educational Institutes</div>
-                    <p style="color:var(--text-gray);font-size:0.8rem;margin-bottom:1rem;">Partner institutes offering quality education across Sri Lanka</p>
-                    <div class="institute-grid">
-                        <div class="institute-card"><div class="institute-icon">🎓</div><div class="institute-info"><h4>Sakya Academy of Higher Education</h4><p class="address">📍 08 Pietersz Pl, Nugegoda</p><p class="phone">📞 0112 816 882</p><span class="institute-badge">Premium Partner</span></div></div>
-                        <div class="institute-card"><div class="institute-icon">🏛️</div><div class="institute-info"><h4>Yahansa - Academy of Higher Education</h4><p class="address">📍 No. 57/1 Makola Rd, Kiribathgoda</p><p class="phone">📞 071 321 9798</p><span class="institute-badge">Premium Partner</span></div></div>
-                        <div class="institute-card"><div class="institute-icon">📚</div><div class="institute-info"><h4>Nanik Higher Education Institute</h4><p class="address">📍 No. 85/2 Weera Lane, Ja Ela Road</p><p class="phone">📞 033 232 0226</p><span class="institute-badge">Premium Partner</span></div></div>
-                        <div class="institute-card"><div class="institute-icon">💻</div><div class="institute-info"><h4>Sipwin</h4><p class="address">📍 No. 51, 1 Kandy Rd, Kurunegala</p><p class="phone">📞 0372 231 010</p><span class="institute-badge">Premium Partner</span></div></div>
-                        <div class="institute-card"><div class="institute-icon">🏫</div><div class="institute-info"><h4>IMS Kandy</h4><p class="address">📍 Colombo Rd, Kandy</p><p class="phone">📞 077 780 6246</p><span class="institute-badge">Premium Partner</span></div></div>
+            <!-- ============================================================ -->
+            <!-- ===== ADMIN SECTIONS ===== -->
+            <!-- ============================================================ -->
+
+            <!-- ===== ADMIN: DASHBOARD ===== -->
+            <div id="section-admin-dashboard" class="section-content hidden">
+                <div class="top-bar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                    <h1>📊 Admin Dashboard</h1>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="label">Total Students</div><div class="value" id="adminTotalStudents">0</div><div class="change">Registered users</div></div>
+                    <div class="stat-card"><div class="label">Total Courses</div><div class="value" id="adminTotalCourses">0</div><div class="change">Active courses</div></div>
+                    <div class="stat-card"><div class="label">Total PDFs</div><div class="value" id="adminTotalPdfs">0</div><div class="change">Uploaded resources</div></div>
+                </div>
+                <div class="admin-grid">
+                    <div class="admin-card" onclick="navigateTo('admin-courses')"><div class="icon">📘</div><div class="title">Courses</div><div class="desc">Manage course catalog</div><div class="count" id="adminCourseCount">0</div></div>
+                    <div class="admin-card" onclick="navigateTo('admin-pdfs')"><div class="icon">📄</div><div class="title">PDFs</div><div class="desc">Upload and manage PDFs</div><div class="count" id="adminPdfCount">0</div></div>
+                    <div class="admin-card" onclick="navigateTo('admin-students')"><div class="icon">👥</div><div class="title">Students</div><div class="desc">View all students</div><div class="count" id="adminStudentCount">0</div></div>
+                </div>
+            </div>
+
+            <!-- ===== ADMIN: COURSES ===== -->
+            <div id="section-admin-courses" class="section-content hidden">
+                <div class="section-card">
+                    <div class="title">📘 Course Management <button class="home-btn" style="margin-left:auto;padding:0.3rem 1rem;font-size:0.75rem;" onclick="openCourseModal()">➕ Add Course</button></div>
+                    <div id="courseList">
+                        <div class="list-item" style="color:var(--text-gray);">Loading courses...</div>
                     </div>
                 </div>
             </div>
 
-            <!-- ===== CALENDAR ===== -->
-            <div id="section-calendar" class="section-content hidden">
-                <div class="section-card" style="border-color:var(--primary);">
-                    <div class="title">📅 Work Hours & Tasks Calendar</div>
-                    <p style="color:var(--text-gray);font-size:0.8rem;margin-bottom:1rem;">Add work hours, tasks, and class dates. Search and manage your schedule.</p>
-                    <div class="search-bar">
-                        <input type="text" id="eventSearchInput" placeholder="🔍 Search events..." />
-                        <button class="search-btn" id="searchEventsBtn">Search</button>
-                        <button class="clear-btn" id="clearSearchBtn">Clear</button>
-                    </div>
-                    <div class="calendar-wrapper">
-                        <div class="calendar-header">
-                            <button class="nav-btn" id="prevMonthBtn">◀</button>
-                            <span class="month-year" id="calendarMonthYear">June 2025</span>
-                            <button class="nav-btn" id="nextMonthBtn">▶</button>
-                            <button class="nav-btn" id="todayBtn" style="background:var(--primary);color:white;">Today</button>
-                        </div>
-                        <div class="calendar-grid" id="calendarGrid">
-                            <div class="day-name">Sun</div><div class="day-name">Mon</div><div class="day-name">Tue</div><div class="day-name">Wed</div><div class="day-name">Thu</div><div class="day-name">Fri</div><div class="day-name">Sat</div>
-                        </div>
-                    </div>
-                    <div class="event-list" id="eventList"><div class="no-events">📭 No events for this day. Click a date to add one.</div></div>
-                </div>
-            </div>
-
-            <!-- ===== OTHER SECTIONS ===== -->
-            <div id="section-al2028" class="section-content hidden"><div class="section-card"><div class="title">📘 A/L 2028</div><div class="list-item">📖 Module 1: Fundamentals of ICT</div><div class="list-item">📖 Module 2: Programming Concepts</div><div class="list-item">📖 Module 3: Network Technologies</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Classes: Mon & Wed 6:30 PM</div></div></div>
-            <div id="section-al2027" class="section-content hidden"><div class="section-card"><div class="title">📗 A/L 2027</div><div class="list-item">📖 Module 1: System Analysis</div><div class="list-item">📖 Module 2: Advanced Programming</div><div class="list-item">📖 Module 3: Web Development</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Classes: Tue & Thu 6:30 PM</div></div></div>
-            <div id="section-al2026" class="section-content hidden"><div class="section-card"><div class="title">📕 A/L 2026</div><div class="list-item">📖 Revision: Past Papers</div><div class="list-item">📖 Mock Exams</div><div class="list-item">📖 Practical Sessions</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Classes: Mon, Wed, Fri 6:30 PM</div></div></div>
-            <div id="section-alvideo" class="section-content hidden"><div class="section-card"><div class="title">🎥 AL Video Modules</div><div class="list-item">🎬 Video 1: Number Systems</div><div class="list-item">🎬 Video 2: Boolean Algebra</div><div class="list-item">🎬 Video 3: Logic Gates</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📺 All videos available on YouTube</div></div></div>
-            <div id="section-git" class="section-content hidden"><div class="section-card"><div class="title">🔗 GIT</div><div class="list-item">📂 GitHub Classroom Access</div><div class="list-item">📂 Repository Management</div><div class="list-item">📂 Version Control</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">🔗 Access: github.com/ictfromabc</div></div></div>
-            <div id="section-ol2025" class="section-content hidden"><div class="section-card"><div class="title">📙 O/L 2025 (Grade 10)</div><div class="list-item">📖 Unit 1: Computer Basics</div><div class="list-item">📖 Unit 2: Software Applications</div><div class="list-item">📖 Unit 3: Internet & Email</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Classes: Saturday 9:00 AM</div></div></div>
-            <div id="section-ol2024" class="section-content hidden"><div class="section-card"><div class="title">📒 O/L 2024 (Grade 11)</div><div class="list-item">📖 Unit 1: Networks</div><div class="list-item">📖 Unit 2: Programming</div><div class="list-item">📖 Unit 3: Databases</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📅 Classes: Saturday 2:00 PM</div></div></div>
-            <div id="section-olvideo" class="section-content hidden"><div class="section-card"><div class="title">🎬 OL Video Modules</div><div class="list-item">🎬 Video 1: Hardware Basics</div><div class="list-item">🎬 Video 2: Internet Safety</div><div class="list-item">🎬 Video 3: Programming Logic</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📺 All videos available on YouTube</div></div></div>
-            <div id="section-tutes" class="section-content hidden"><div class="section-card"><div class="title">📄 Tutes</div><div class="list-item">📝 Tute 1: Binary & Hex</div><div class="list-item">📝 Tute 2: HTML Basics</div><div class="list-item">📝 Tute 3: CSS Styling</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📥 Download all tutes from portal</div></div></div>
-            <div id="section-payments" class="section-content hidden"><div class="section-card"><div class="title">💳 Payments</div><div class="list-item">💰 Annual Fee: LKR 15,000</div><div class="list-item">📅 Due Date: 2026-08-20</div><div class="list-item">✅ Status: Paid</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📞 Contact: 071 455 5513</div></div></div>
-            <div id="section-telegram" class="section-content hidden"><div class="section-card"><div class="title">📱 Telegram Groups</div><div class="list-item">📢 A/L 2028 Group</div><div class="list-item">📢 A/L 2027 Group</div><div class="list-item">📢 A/L 2026 Group</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">🔗 Join via: t.me/ictfromabc</div></div></div>
-            <div id="section-socials" class="section-content hidden"><div class="section-card"><div class="title">🌐 Social Media</div><div class="list-item">📘 Facebook: @ictfromabc</div><div class="list-item">📺 YouTube: ICT from ABC</div><div class="list-item">📸 Instagram: @ictfromabc</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">🔗 Follow us for updates</div></div></div>
-            <div id="section-bank" class="section-content hidden"><div class="section-card"><div class="title">🏦 Bank Account Details</div><div class="list-item"><strong>B.M.R.C. BANDARANAYAKE</strong></div><div class="list-item">🏦 1006 5704 9654 · SAMPATH BANK</div><div class="list-item">📍 KURUNEGALA SUPER BRANCH</div><div class="list-item" style="border-bottom:1px solid var(--border-color);"></div><div class="list-item"><strong>B.M.R.C. BANDARANAYAKE</strong></div><div class="list-item">🏦 8160 100 221 · COMMERCIAL BANK</div><div class="list-item" style="border-bottom:none;color:#db3900;font-weight:600;">📍 KURUNEGALA MAIN BRANCH</div></div></div>
-
-            <!-- ===== ADMIN PANEL ===== -->
-            <div id="section-admin" class="section-content hidden">
-                <div class="admin-panel active">
-                    <div class="top-bar">
-                        <h1>⚙️ Admin Panel <span style="font-size:0.7rem;color:var(--text-gray);font-weight:400;">· Management Dashboard</span></h1>
-                        <div style="display:flex;align-items:center;gap:0.5rem;">
-                            <span style="font-size:0.7rem;color:var(--text-gray);">👑 Admin</span>
-                            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4caf50;animation:pulse 1.5s infinite;"></span>
-                        </div>
-                    </div>
-
-                    <!-- Admin Stats -->
-                    <div class="admin-stats-grid" id="adminStatsGrid">
-                        <div class="admin-stat-card">
-                            <div class="admin-stat-number" id="adminTotalUsers">0</div>
-                            <div class="admin-stat-label">👥 Total Users</div>
-                        </div>
-                        <div class="admin-stat-card">
-                            <div class="admin-stat-number" id="adminTotalNotices">0</div>
-                            <div class="admin-stat-label">📢 Notices</div>
-                        </div>
-                        <div class="admin-stat-card">
-                            <div class="admin-stat-number" id="adminTotalEvents">0</div>
-                            <div class="admin-stat-label">📅 Events</div>
-                        </div>
-                        <div class="admin-stat-card">
-                            <div class="admin-stat-number" id="adminTotalSessions">0</div>
-                            <div class="admin-stat-label">⏱️ Study Sessions</div>
-                        </div>
-                    </div>
-
-                    <!-- Admin Tabs -->
-                    <div class="admin-tabs">
-                        <button class="tab-btn active" data-tab="admin-users">👥 Users</button>
-                        <button class="tab-btn" data-tab="admin-notices">📢 Notices</button>
-                        <button class="tab-btn" data-tab="admin-events">📅 Events</button>
-                        <button class="tab-btn" data-tab="admin-settings">⚙️ Settings</button>
-                    </div>
-
-                    <!-- Tab: Users -->
-                    <div class="admin-tab-content active" id="admin-tab-users">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;flex-wrap:wrap;gap:0.5rem;">
-                            <span style="color:var(--text-gray);font-size:0.85rem;">Manage all registered users</span>
-                            <button class="home-btn" id="adminRefreshUsersBtn" style="padding:0.3rem 1rem;font-size:0.75rem;">🔄 Refresh</button>
-                        </div>
-                        <div class="admin-table-wrap">
-                            <table class="admin-table" id="adminUsersTable">
-                                <thead>
-                                    <tr><th>Name</th><th>Phone</th><th>Role</th><th>Batch</th><th style="text-align:center;">Actions</th></tr>
-                                </thead>
-                                <tbody id="adminUsersBody">
-                                    <tr><td colspan="5" style="text-align:center;color:var(--text-gray);">Loading users...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Tab: Notices -->
-                    <div class="admin-tab-content" id="admin-tab-notices">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;flex-wrap:wrap;gap:0.5rem;">
-                            <span style="color:var(--text-gray);font-size:0.85rem;">Manage all notices (Google Sheets sync)</span>
-                            <button class="home-btn" id="adminRefreshNoticesBtn" style="padding:0.3rem 1rem;font-size:0.75rem;">🔄 Refresh</button>
-                        </div>
-                        <div id="adminNoticeList">
-                            <div style="color:var(--text-gray);padding:0.5rem;">Loading notices...</div>
-                        </div>
-                    </div>
-
-                    <!-- Tab: Events -->
-                    <div class="admin-tab-content" id="admin-tab-events">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;flex-wrap:wrap;gap:0.5rem;">
-                            <span style="color:var(--text-gray);font-size:0.85rem;">View all user events</span>
-                            <button class="home-btn" id="adminRefreshEventsBtn" style="padding:0.3rem 1rem;font-size:0.75rem;">🔄 Refresh</button>
-                        </div>
-                        <div id="adminEventList">
-                            <div style="color:var(--text-gray);padding:0.5rem;">Loading events...</div>
-                        </div>
-                    </div>
-
-                    <!-- Tab: Settings -->
-                    <div class="admin-tab-content" id="admin-tab-settings">
-                        <div class="section-card" style="border-color:var(--primary);">
-                            <div class="title">⚙️ Admin Settings</div>
-                            <div style="display:flex;flex-direction:column;gap:0.8rem;margin-top:0.5rem;">
-                                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;padding:0.6rem 0;border-bottom:1px solid var(--border-color);">
-                                    <div><span style="font-weight:600;color:white;">Admin Email</span><br><span style="font-size:0.8rem;color:var(--text-gray);" id="adminEmailDisplay">gayanthalochana28@gmail.com</span></div>
-                                    <span style="font-size:0.7rem;color:#4caf50;font-weight:600;">✅ Verified</span>
-                                </div>
-                                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;padding:0.6rem 0;border-bottom:1px solid var(--border-color);">
-                                    <div><span style="font-weight:600;color:white;">Firebase Status</span><br><span style="font-size:0.8rem;color:var(--text-gray);" id="firebaseStatus">Connected</span></div>
-                                    <span style="font-size:0.7rem;color:#4caf50;font-weight:600;">🟢 Online</span>
-                                </div>
-                                <div style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-top:0.3rem;">
-                                    <button class="home-btn" id="adminExportDataBtn" style="padding:0.4rem 1.2rem;font-size:0.8rem;">📥 Export Data</button>
-                                    <button class="home-btn home-btn-outline" id="adminClearCacheBtn" style="padding:0.4rem 1.2rem;font-size:0.8rem;">🗑️ Clear Cache</button>
-                                </div>
-                                <div style="margin-top:0.5rem;font-size:0.7rem;color:var(--text-gray);border-top:1px solid var(--border-color);padding-top:0.8rem;">
-                                    <p>📘 <strong>Firebase Admin Setup Tutorial:</strong></p>
-                                    <ol style="color:#aaa;padding-left:1.2rem;line-height:1.8;">
-                                        <li>Go to <a href="https://console.firebase.google.com" target="_blank" style="color:var(--primary);">Firebase Console</a></li>
-                                        <li>Select your project: <strong>ict-from-abc</strong></li>
-                                        <li>Go to <strong>Authentication</strong> → <strong>Users</strong></li>
-                                        <li>Click <strong>Add User</strong> and enter:<br>
-                                            <span style="color:white;">Email: <strong>gayanthalochana28@gmail.com</strong></span><br>
-                                            <span style="color:white;">Password: <strong>gayantha1234</strong></span>
-                                        </li>
-                                        <li>Go to <strong>Realtime Database</strong> → <strong>Rules</strong></li>
-                                        <li>Set rules to allow authenticated users read/write their own data (see code comments for full rules).</li>
-                                        <li>That's it! Admin <strong>gayanthalochana28@gmail.com</strong> can now manage all data.</li>
-                                    </ol>
-                                </div>
-                            </div>
-                        </div>
+            <!-- ===== ADMIN: PDFs ===== -->
+            <div id="section-admin-pdfs" class="section-content hidden">
+                <div class="section-card">
+                    <div class="title">📄 PDF Management <button class="home-btn" style="margin-left:auto;padding:0.3rem 1rem;font-size:0.75rem;" onclick="openPdfModal()">➕ Upload PDF</button></div>
+                    <div id="pdfList">
+                        <div class="list-item" style="color:var(--text-gray);">Loading PDFs...</div>
                     </div>
                 </div>
             </div>
-            <!-- ===== END ADMIN PANEL ===== -->
 
-        </div><!-- /main-content -->
-    </div><!-- /dashboard-container -->
+            <!-- ===== ADMIN: STUDENTS ===== -->
+            <div id="section-admin-students" class="section-content hidden">
+                <div class="section-card">
+                    <div class="title">👥 Student Management</div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Batch</th></tr></thead>
+                            <tbody id="adminStudentsTable"><tr><td colspan="5" style="text-align:center;color:var(--text-gray);">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-    <!-- ===== MODALS ===== -->
-    <div id="signupModal" class="modal-overlay"><div class="modal-card"><h2>📝 Create Account</h2><label>Full Name</label><input type="text" id="signupName" /><label>Phone Number</label><input type="text" id="signupPhone" /><label>Password</label><input type="password" id="signupPass" /><button class="home-btn" id="signupBtn">Sign Up</button><div class="close-modal-btn" onclick="closeModal('signupModal')">✕ close</div></div></div>
-    <div id="forgotModal" class="modal-overlay forgot-modal"><div class="modal-card"><h2>🔑 Reset Password</h2><p style="text-align:center;color:#888;font-size:0.85rem;margin-bottom:1rem;">Enter your phone number to receive an OTP</p><label>Phone Number</label><div style="display:flex;gap:0.5rem;"><input type="text" id="forgotPhone" placeholder="07X XXX XXXX" style="flex:1;" /><button id="sendOtpBtn" style="flex-shrink:0;padding:0.7rem 1.2rem;background:linear-gradient(135deg,var(--primary),var(--primary-light));border:none;color:white;border-radius:40px;font-weight:700;cursor:pointer;">Send OTP</button></div><div id="otpTimer" style="text-align:center;color:#ff6b3d;font-weight:600;font-size:0.85rem;margin:0.3rem 0;padding:0.3rem;background:rgba(219,57,0,0.1);border-radius:12px;border:1px dashed var(--primary);"></div><label>Enter OTP</label><div style="display:flex;gap:0.5rem;"><input type="text" id="otpInput" placeholder="6-digit OTP" maxlength="6" style="flex:1;" /><button id="verifyOtpBtn" style="flex-shrink:0;padding:0.7rem 1.2rem;background:linear-gradient(135deg,var(--primary),var(--primary-light));border:none;color:white;border-radius:40px;font-weight:700;cursor:pointer;">Verify</button></div><div id="otpStatus" style="text-align:center;font-weight:600;font-size:0.8rem;margin:0.2rem 0;"></div><label>New Password</label><input type="password" id="resetNewPass" placeholder="Enter new password (min 6 chars)" /><button class="reset-btn" id="resetPassBtn" style="background:linear-gradient(135deg,#0a8f3c,#0cb04a);border:none;color:white;font-weight:700;padding:0.8rem;border-radius:40px;width:100%;cursor:pointer;transition:0.3s;font-size:1rem;margin-top:0.3rem;">🔄 Reset Password</button><div class="close-modal-btn" onclick="closeModal('forgotModal')">✕ close</div></div></div>
-    <div id="changePassModal" class="modal-overlay"><div class="modal-card"><h2>🔐 Change Password</h2><label>New Password</label><input type="password" id="newPass" /><button class="home-btn" id="changePassBtn">Update</button><div class="close-modal-btn" onclick="closeModal('changePassModal')">✕ close</div></div></div>
-    <div id="profileModal" class="modal-overlay"><div class="modal-card"><h2>✏️ Edit Full Profile</h2><label>Full Name</label><input type="text" id="editFullName" /><label>Address</label><input type="text" id="editAddress" /><label>Phone Number</label><input type="text" id="editPhone" /><label>WhatsApp Number</label><input type="text" id="editWhatsApp" /><label>A/L Subject</label><input type="text" id="editSubject" placeholder="e.g. ICT, Physics" /><label>School</label><input type="text" id="editSchool" /><label>Birthday</label><input type="date" id="editBirthday" /><label>NIC Number</label><input type="text" id="editNic" /><label>Institute</label><input type="text" id="editInstitute" /><button class="home-btn" id="saveProfileBtn">Save Profile</button><div class="close-modal-btn" onclick="closeModal('profileModal')">✕ close</div></div></div>
-    <div id="eventModal" class="modal-overlay"><div class="modal-card"><h2 id="eventModalTitle">📝 Add Event</h2><label>Date</label><input type="date" id="eventDate" /><label>Title</label><input type="text" id="eventTitle" placeholder="e.g. Physics Practical" /><label>Type</label><select id="eventType"><option value="work">💼 Work Hours</option><option value="task">✅ Task</option><option value="class">📚 Class Date</option><option value="other">📌 Other</option></select><label>Description</label><textarea id="eventDesc" placeholder="Details about this event..."></textarea><label>Time</label><input type="time" id="eventTime" /><button class="home-btn" id="saveEventBtn">💾 Save Event</button><button class="home-btn home-btn-outline" id="deleteEventBtn" style="margin-top:0.3rem;display:none;">🗑️ Delete Event</button><div class="close-modal-btn" onclick="closeModal('eventModal')">✕ close</div></div></div>
-    <div id="adminEditUserModal" class="modal-overlay"><div class="modal-card"><h2>✏️ Edit User</h2><label>Full Name</label><input type="text" id="adminEditName" /><label>Phone</label><input type="text" id="adminEditPhone" /><label>Batch</label><input type="text" id="adminEditBatch" /><label>Role</label><select id="adminEditRole"><option value="user">User</option><option value="admin">Admin</option></select><button class="home-btn" id="adminSaveUserBtn">💾 Save</button><div class="close-modal-btn" onclick="closeModal('adminEditUserModal')">✕ close</div></div></div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+       MODALS
+       ============================================================ -->
+
+    <!-- Signup Modal -->
+    <div id="signupModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2>📝 Create Account</h2>
+            <label>Full Name</label><input type="text" id="signupName" />
+            <label>Email Address</label><input type="email" id="signupEmail" />
+            <label>Password</label><input type="password" id="signupPass" />
+            <button class="home-btn" id="signupBtn">Sign Up</button>
+            <div class="close-modal-btn" onclick="closeModal('signupModal')">✕ close</div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2>🔑 Reset Password</h2>
+            <p style="color:var(--text-gray);font-size:0.85rem;margin-bottom:1rem;">Enter your email to receive a password reset link.</p>
+            <label>Email Address</label>
+            <input type="email" id="forgotEmail" placeholder="Enter your email" />
+            <button class="home-btn" id="resetPassBtn">Send Reset Link</button>
+            <div class="close-modal-btn" onclick="closeModal('forgotModal')">✕ close</div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePassModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2>🔐 Change Password</h2>
+            <label>Current Password</label><input type="password" id="currentPass" />
+            <label>New Password</label><input type="password" id="newPass" />
+            <button class="home-btn" id="changePassBtn">Update Password</button>
+            <div class="close-modal-btn" onclick="closeModal('changePassModal')">✕ close</div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="profileModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2>✏️ Edit Profile</h2>
+            <label>Full Name</label><input type="text" id="editFullName" />
+            <label>Phone Number</label><input type="text" id="editPhone" />
+            <button class="home-btn" id="saveProfileBtn">Save Profile</button>
+            <div class="close-modal-btn" onclick="closeModal('profileModal')">✕ close</div>
+        </div>
+    </div>
+
+    <!-- Add Course Modal -->
+    <div id="courseModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2>📘 Add Course</h2>
+            <label>Course Title</label><input type="text" id="courseTitle" placeholder="e.g. A/L ICT 2026" />
+            <label>Description</label><textarea id="courseDesc" placeholder="Brief description"></textarea>
+            <label>Instructor</label><input type="text" id="courseInstructor" placeholder="Instructor name" />
+            <button class="home-btn" id="saveCourseBtn">💾 Save Course</button>
+            <div class="close-modal-btn" onclick="closeModal('courseModal')">✕ close</div>
+        </div>
+    </div>
+
+    <!-- Add PDF Modal -->
+    <div id="pdfModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2>📄 Upload PDF</h2>
+            <label>PDF Title</label><input type="text" id="pdfTitle" placeholder="e.g. Past Paper 2025" />
+            <label>File URL</label><input type="url" id="pdfUrl" placeholder="https://example.com/file.pdf" />
+            <label>Category</label><input type="text" id="pdfCategory" placeholder="e.g. A/L 2026" />
+            <button class="home-btn" id="savePdfBtn">💾 Upload PDF</button>
+            <div class="close-modal-btn" onclick="closeModal('pdfModal')">✕ close</div>
+        </div>
+    </div>
 
     <!-- ===== CHATBOT ===== -->
     <button class="chatbot-toggle pulse-glow" id="chatToggle">💬 AI Assistant</button>
     <div class="chatbot-window" id="chatWindow">
-        <div class="chat-header">
-            <span>🤖 ICT Assistant</span>
-            <button id="chatClose">✕</button>
-        </div>
+        <div class="chat-header"><span>🤖 ICT Assistant</span><button id="chatClose">✕</button></div>
         <div class="chat-messages" id="chatMessages">
-            <div class="chat-msg bot">
-                <div class="sender">🤖 Assistant</div>
-                👋 Hi! I'm your ICT assistant. Ask me about:
-                <div style="margin-top:6px;">
-                    <span class="quick-reply" data-msg="Class schedule">📅 Schedule</span>
-                    <span class="quick-reply" data-msg="Past papers">📄 Papers</span>
-                    <span class="quick-reply" data-msg="Fees">💰 Fees</span>
-                    <span class="quick-reply" data-msg="Contact info">📞 Contact</span>
-                </div>
-                <div class="time">Just now</div>
-            </div>
+            <div class="chat-msg bot"><div class="sender">🤖 Assistant</div>👋 Hi! Ask me about anything ICT, admin tasks, or portal features.</div>
         </div>
-        <div class="chat-input">
-            <input id="chatInput" placeholder="Type your question..." />
-            <button id="chatSend">Send</button>
-        </div>
+        <div class="chat-input"><input id="chatInput" placeholder="Type your question..." /><button id="chatSend">Send</button></div>
     </div>
 
-    <!-- ===== External JavaScript ===== -->
+    <!-- ===== EXTERNAL JAVASCRIPT ===== -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
